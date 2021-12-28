@@ -38,31 +38,35 @@ CLASS DEFINITIONS
 """
 class Question:
 
-    def __init__(self, type, col, optional=None):
-        self.type = type
-        self.col = col
+    def __init__(self, field, optional=None):
+        self.field = field
         self.optional = optional
-
-        if col == 1:
-            self.question = lambda amount, value : amount > value
-
-        elif col in [3, 4, 5, 6]:
-            self.question = lambda can : bool(can) == True
-
-        elif col == 7:
-            self.question = lambda x : x < 20
-
-        elif col == 8:
-            self.question = lambda y : y % 2 == 0
-
-        elif col == 9:
-            self.question = lambda dist : dist <= 3 if dist is not None else False
 
     def check(self, data):
         if self.optional is not None:
-            return self.question(data[self.col], self.optional)
+            return self.question(data[self.field], self.optional)
         else:
-            return self.question(data[self.col])
+            return self.question(data[self.field])
+
+class RangedQuestion(Question):
+
+    def __init__(self, field, optional=None):
+        super().__init__(field, optional=optional)
+
+        if field == 'amount':
+            self.question = lambda amount, value : amount > value
+
+        elif field in ['up', 'down', 'left', 'right']:
+            self.question = lambda can : bool(can) 
+
+        elif field == 'pos_x':
+            self.question = lambda x : x < 20
+
+        elif field == 'pos_y':
+            self.question = lambda y : y % 2 == 0
+
+        elif field == 'enemy_d':
+            self.question = lambda dist : dist <= 3 if dist is not None else False
 
 class LeafNode:
 
@@ -72,27 +76,12 @@ class LeafNode:
 class DecisionTree:
 
     def __init__(self):
-        self.root = None
+        pass
 
-    # def buildSplitTree(self):
+    @staticmethod
+    def buildRangedTree():
 
-    #     split_up_down = LeafNode([(0,1), (0,-1)])
-    #     split_up = LeafNode([(0,1)])
-    #     split_down = LeafNode([(0,-1)])
-    #     split_back = LeafNode([(-1,0), (0,0)])
-    #     no_split = LeafNode([(0,0)])
-
-    #     can_move_back = DecisionNode(Question(3), split_back, no_split)
-    #     can_move_down_1 = DecisionNode(Question(1), split_down, can_move_back)
-    #     can_move_down_2 = DecisionNode(Question(1), split_up_down, split_up)
-
-    #     return DecisionNode(Question(0), can_move_down_2, can_move_down_1)
-
-    def buildRangedTree(self):
-
-        soldier = ALLIED_SOLDIER_RANGED
-
-        soldiers_up_down = np.array([(0,1),(0,-1)])
+        soldiers_up_down = np.array([(0,-1),(0,1)])
         soldiers_up = np.array([(0,-1)])
         soldiers_down = np.array([(0,1)])
         soldiers_back = np.array([(-1,0)])
@@ -101,23 +90,23 @@ class DecisionTree:
 
         leaf_nothing = LeafNode(soldiers_nowhere)
 
-        split_vert = DecisionNode(Question(soldier, 4), LeafNode(soldiers_up_down), LeafNode(soldiers_up))
-        move_back = DecisionNode(Question(soldier, 6), LeafNode(soldiers_back), leaf_nothing)
-        can_split = DecisionNode(Question(soldier, 1, 1), split_vert, LeafNode(soldiers_up)) # Prioritize up
+        split_vert = DecisionNode(RangedQuestion('down'), LeafNode(soldiers_up_down), LeafNode(soldiers_up))
+        move_back = DecisionNode(RangedQuestion('left'), LeafNode(soldiers_back), leaf_nothing)
+        can_split = DecisionNode(RangedQuestion('amount', 1), split_vert, LeafNode(soldiers_up)) # Prioritize up
 
-        move_down = DecisionNode(Question(soldier, 4), LeafNode(soldiers_down), leaf_nothing)
-        split_formattion = DecisionNode(Question(soldier, 3), can_split, move_down)
+        move_down = DecisionNode(RangedQuestion('down'), LeafNode(soldiers_down), leaf_nothing)
+        split_formattion = DecisionNode(RangedQuestion('up'), can_split, move_down)
 
-        move_forward = DecisionNode(Question(soldier, 5), LeafNode(soldiers_forward), leaf_nothing)
+        move_forward = DecisionNode(RangedQuestion('right'), LeafNode(soldiers_forward), leaf_nothing)
 
-        move_formattion = DecisionNode(Question(soldier, 7), move_forward,leaf_nothing)
+        move_formattion = DecisionNode(RangedQuestion('pos_x'), move_forward,leaf_nothing)
 
-        formattion = DecisionNode(Question(soldier, 8), split_formattion, move_formattion)
+        formattion = DecisionNode(RangedQuestion('pos_y'), split_formattion, move_formattion)
 
-        split_amount = DecisionNode(Question(soldier, 3), can_split, move_back)
-        move = DecisionNode(Question(soldier, 9), leaf_nothing, formattion)
+        split_amount = DecisionNode(RangedQuestion('up'), can_split, move_back)
+        move = DecisionNode(RangedQuestion('enemy_d'), leaf_nothing, formattion)
 
-        root = DecisionNode(Question(soldier, 1, 50), split_amount, move)
+        root = DecisionNode(RangedQuestion('amount', 50), split_amount, move)
 
         return root
 
@@ -139,10 +128,6 @@ class DecisionNode:
         self.question = question # Question the node makes
         self.true_branch = true_branch # Node if question is true
         self.false_branch = false_branch # Node if question is false
-
-
-
-
 
 class Environment:
     def __init__(self, difficulty, base_cost, base_prod):
@@ -268,18 +253,32 @@ class Environment:
             enemy_pos = Environment.findEnemy((x,y), [tuple(x) for x in enemies])
             dist = sum([abs(x-enemy_pos[0]), abs(y-enemy_pos[1])]) if enemy_pos is not None else None
             
-            data = [soldier,
-                self.board[x,y,1],
-                self.resources,
-                self.board[x,y-1,0] in [EMPTY_CELL, soldier] if y > 0 else False,
-                self.board[x,y+1,0] in [EMPTY_CELL, soldier] if y < HEIGHT-1 else False,
-                self.board[x+1,y,0] in [EMPTY_CELL, soldier] if x < WIDTH-1 else False,
-                self.board[x-1,y,0] in [EMPTY_CELL, soldier] if x > 0 else False,
-                x,
-                y,
-                dist]                
+            data = {}
+            data['amount'] = self.board[x,y,1]
+            data['resources'] = self.resources
+            data['up'] = self.board[x,y-1,0] in [EMPTY_CELL, soldier] if y > 0 else False
+            data['down'] = self.board[x,y+1,0] in [EMPTY_CELL, soldier] if y < HEIGHT-1 else False
+            data['right'] = self.board[x+1,y,0] in [EMPTY_CELL, soldier] if x < WIDTH-1 else False
+            data['left'] = self.board[x-1,y,0] in [EMPTY_CELL, soldier] if x > 0 else False
+            data['pos_x'] = x
+            data['pos_y'] = y
+            data['enemy_d'] = dist
+
+
+            # data = [self.board[x,y,1],
+            #     self.resources,
+            #     self.board[x,y-1,0] in [EMPTY_CELL, soldier] if y > 0 else False,
+            #     self.board[x,y+1,0] in [EMPTY_CELL, soldier] if y < HEIGHT-1 else False,
+            #     self.board[x+1,y,0] in [EMPTY_CELL, soldier] if x < WIDTH-1 else False,
+            #     self.board[x-1,y,0] in [EMPTY_CELL, soldier] if x > 0 else False,
+            #     x,
+            #     y,
+            #     dist]                
 
             moves = self.decision.selectMove(data, self.root)
+            
+            print(data)
+            print(moves)
 
             for move in moves:
                 if len(move) == 2:
@@ -287,9 +286,6 @@ class Environment:
                     actions.append(action)
 
         playActions(actions)
-
-
-
 
     """
     JS METHODS
