@@ -116,7 +116,6 @@ class Environment:
 
             move = self.nn_actions[predictions[idx]] 
             
-            print(move)
             if not np.array_equal(move, [0, 0]):
                 actions.append(moveSoldiers((x,y), np.add([x,y], move), self.board[x,y,1]))
      
