@@ -111,8 +111,8 @@ class PooledGA(pygad.GA):
 
     def cal_pop_fitness(self):        
 
-        with Pool(processes=self.sol_per_pop) as pool:
-        # with Pool(processes=1) as pool:
+        # with Pool(processes=self.sol_per_pop) as pool:
+        with Pool(processes=25) as pool:
             pop_fitness = pool.starmap(PooledGA.fitness_wrapper, list(enumerate(self.gann.population_networks)))  
 
         return np.array(pop_fitness)
@@ -162,8 +162,9 @@ class PooledGA(pygad.GA):
 
         self.save(filename=f'outputs/genetic_{name_append}')
 
-        filename = f'outputs/results_{name_append}.txt' 
-        np.savetxt(filename, solution, delimiter=',')
+        filename = f'outputs/results_{name_append}' 
+        np.savetxt(filename + '.txt', solution, delimiter=',')
+        np.savez(filename, solution)
 
         self.plot_fitness(save_dir=f'outputs/graph_{name_append}.png')
 
@@ -172,11 +173,19 @@ FUNCTIONS DEFINITIONS
 """
 def configLogger():
     logger.setLevel(level=logging.DEBUG)
+
     formatter = logging.Formatter('%(asctime)s [%(levelname)s]: %(message)s')
     ch = logging.StreamHandler()
+    fh = logging.FileHandler('log.log', 'w+')
+    
     ch.setLevel(level=logging.DEBUG)
+    fh.setLevel(level=logging.DEBUG)
+    
     ch.setFormatter(formatter)
+    fh.setFormatter(formatter)
+    
     logger.addHandler(ch)
+    logger.addHandler(fh)
 
 """
 MAIN
@@ -185,10 +194,10 @@ if __name__ == '__main__':
 
     configLogger()
 
-    gann = pygad.gann.GANN(num_solutions=6,
+    gann = pygad.gann.GANN(num_solutions=100,
                         num_neurons_input=8,
-                        num_neurons_output=5,
-                        num_neurons_hidden_layers=[15, 10, 7],
+                        num_neurons_output=9,
+                        num_neurons_hidden_layers=[15, 10],
                         hidden_activations="relu",
                         output_activation="softmax")
 
@@ -196,19 +205,24 @@ if __name__ == '__main__':
 
     initial_population = population_vectors.copy()
 
-    trainer = PooledGA(num_generations=5,
-                       num_parents_mating=4,
-                       initial_population=initial_population,
-                       fitness_func=PooledGA.fitness_func,
-                       mutation_percent_genes=5,
-                       init_range_low=-2,
-                       init_range_high=5,
-                       parent_selection_type='sss',
-                       crossover_type='single_point',
-                       mutation_type='random',
-                       keep_parents=1,
-                       gann=gann)
+    trainer = PooledGA(num_generations=500,
+                        num_parents_mating=10,
+                        initial_population=initial_population,
+                        fitness_func=PooledGA.fitness_func,
+                        # mutation_percent_genes=5,
+                        mutation_probability=0.4,
+                        init_range_low=-15,
+                        init_range_high=15,
+                        parent_selection_type='sus',
+                        crossover_type='uniform',
+                        mutation_type='random',
+                        # keep_parents=1,
+                        allow_duplicate_genes=False,
+                        save_best_solutions=False,
+                        stop_criteria="saturate_150",
+                        gann=gann)
 
+    logger.info('Starting')
     trainer.compute()
 
 

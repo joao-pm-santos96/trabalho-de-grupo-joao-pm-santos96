@@ -53,7 +53,15 @@ class Environment:
         JS STUFF
         """
         self.nn = nn
-        self.nn_actions = np.array([[0,0], [1,0], [-1,0], [0,1], [0,-1]])
+        self.nn_actions = np.array([[0,0], 
+                                    [1,0], 
+                                    [-1,0], 
+                                    [0,1], 
+                                    [0,-1],
+                                    [1/2,0], 
+                                    [-1/2,0], 
+                                    [0,1/2], 
+                                    [0,-1/2]])
 
         playActions([])
 
@@ -117,7 +125,13 @@ class Environment:
             move = self.nn_actions[predictions[idx]] 
             
             if not np.array_equal(move, [0, 0]):
-                actions.append(moveSoldiers((x,y), np.add([x,y], move), self.board[x,y,1]))
+                
+                ratio = np.linalg.norm(move)
+                move = np.divide(move, ratio)
+                amount = int(self.board[x,y,1] // (1/ratio))
+                dest = np.add([x,y], move)
+
+                actions.append(moveSoldiers((x,y), dest.astype(int), amount))
      
         playActions(actions)
 
