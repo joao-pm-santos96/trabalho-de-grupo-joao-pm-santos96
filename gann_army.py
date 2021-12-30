@@ -6,6 +6,7 @@
 """
 IMPORTS
 """
+from logging import log
 import os
 import time
 import pygad
@@ -15,6 +16,7 @@ import json
 import numpy as np
 from itertools import combinations
 from js_logger import logger
+import select
 
 from numpy.core.numeric import moveaxis
 from actions import *
@@ -89,8 +91,15 @@ class Environment:
         return int(self.base_prod*(1.2**self.building_level))
 
     def readEnvironment(self):
-        state = input()
+        # state = input()
+        i, o, e = select.select( [sys.stdin], [], [], 0.500 )
 
+        if i:
+            state = sys.stdin.readline().strip()
+        else:
+            state = 'ERROR'
+            logger.error('Input read error (timeout)')
+        
         if state in ["END", "ERROR"]:
             return state
         level, resources, board = state.split()
