@@ -485,7 +485,6 @@ def main():
     Output(f"{level} {env.base_cost} {env.base_prod}")
     ok = input()
 
-
     while 1:
         env.outputState()
         error = env.readAndApplyTurnEvents()
@@ -502,14 +501,12 @@ def main():
             Output("ERROR")
             break
     
-    
     # open score pipe
     pid = os.getpid()
     name = '.pipes/' + str(pid) + '_score'
     with open(name, 'w') as pipe:
+        print('write score')
         pipe.writelines([str(score)])
         
-
-
 if __name__ == "__main__":
     main()

@@ -199,6 +199,7 @@ def main():
     pid = os.getpid()
     name = '.pipes/' + str(pid) + '_nn'
     with open(name, 'rb') as pipe:
+        print('load nn')
         nn = pickle.load(pipe)
 
     env = Environment(difficulty, base_cost, base_prod, nn=nn)

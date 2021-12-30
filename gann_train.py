@@ -126,24 +126,30 @@ class PooledGA(pygad.GA):
         t_client = SubprocessThread(client_call, stderr_prefix="client debug: ")
         t_server = SubprocessThread(server_call, stdin_pipe=t_client.p.stdout, stdout_pipe=t_client.p.stdin, stderr_prefix="server debug: ")
 
-        # open nn pipe
-        name = '.pipes/' + str(t_client.p.pid) + '_nn'
-        os.mkfifo(name)
+        # open pipes
+        nn_pipe_path = '.pipes/' + str(t_client.p.pid) + '_nn'
+        os.mkfifo(nn_pipe_path)
+
+        score_pipe_path = '.pipes/' + str(t_server.p.pid) + '_score'
+        os.mkfifo(score_pipe_path)
         
+        # send solution
         nn = solution
-        with open(name, 'wb') as pipe:
-            pickle.dump(nn, pipe, pickle.HIGHEST_PROTOCOL)
+        with open(nn_pipe_path, 'wb') as nn_pipe:
+            print('dump nn')
+            pickle.dump(nn, nn_pipe, pickle.HIGHEST_PROTOCOL)
 
-        t_client.start()
-        t_server.start()
+        with open(score_pipe_path, 'r') as score_pipe:
+            print('read score')
 
-        t_client.join()
-        t_server.join()
+            t_client.start()
+            t_server.start()
 
-        # open score pipe
-        name = '.pipes/' + str(t_server.p.pid) + '_score'
-        with open(name, 'r') as pipe:
-            score = int(pipe.readline())
+            t_client.join()
+            t_server.join()
+
+            # get score
+            score = int(score_pipe.readline())
 
         penalty = 2000 if (t_client.return_code or t_server.return_code) else 0
         
