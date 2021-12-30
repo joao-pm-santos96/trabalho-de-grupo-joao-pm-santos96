@@ -128,10 +128,12 @@ class PooledGA(pygad.GA):
 
         # open pipes
         nn_pipe_path = '.pipes/' + str(t_client.p.pid) + '_nn'
-        os.mkfifo(nn_pipe_path)
+        if not os.path.exists(nn_pipe_path):
+            os.mkfifo(nn_pipe_path)
 
         score_pipe_path = '.pipes/' + str(t_server.p.pid) + '_score'
-        os.mkfifo(score_pipe_path)
+        if not os.path.exists(score_pipe_path):
+            os.mkfifo(score_pipe_path)
         
         # send solution
         nn = solution
@@ -150,6 +152,10 @@ class PooledGA(pygad.GA):
 
                 # get score
                 score = int(score_pipe.readline())
+
+        # remove pipe files
+        os.remove(nn_pipe_path)
+        os.remove(score_pipe_path)
 
         penalty = 2000 if (t_client.return_code or t_server.return_code) else 0
         
