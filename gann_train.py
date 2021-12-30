@@ -139,17 +139,17 @@ class PooledGA(pygad.GA):
             print('dump nn')
             pickle.dump(nn, nn_pipe, pickle.HIGHEST_PROTOCOL)
 
-        with open(score_pipe_path, 'r') as score_pipe:
-            print('read score')
+            with open(score_pipe_path, 'r') as score_pipe:
+                print('read score')
 
-            t_client.start()
-            t_server.start()
+                t_client.start()
+                t_server.start()
 
-            t_client.join()
-            t_server.join()
+                t_client.join()
+                t_server.join()
 
-            # get score
-            score = int(score_pipe.readline())
+                # get score
+                score = int(score_pipe.readline())
 
         penalty = 2000 if (t_client.return_code or t_server.return_code) else 0
         
