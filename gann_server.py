@@ -369,7 +369,8 @@ class Environment:
             for col in range(WIDTH):
                 if ntroops[row][col]:
                     if self.board[row][col][0]:
-                        debug("ERROR!!")
+                        # debug("ERROR!!")
+                        pass
                     self.board[row][col] = [ENEMY_SOLDIER_MELEE, ntroops[row][col]]
 
                 
@@ -479,7 +480,7 @@ def main():
 
     random.seed(int(time.time()*1000))
 
-    debug("Difficulty is", level)
+    # debug("Difficulty is", level)
     
     env = Environment(level, viewer)    
     Output(f"{level} {env.base_cost} {env.base_prod}")
@@ -491,13 +492,13 @@ def main():
 
         score = env.turn if env.retard<MAX_RETARD else int(MAX_T*1.5-env.turn/2)
 
-        debug("SCORE: ", score, ", retard: ", env.retard)
+        # debug("SCORE: ", score, ", retard: ", env.retard)
         if env.end():
-            debug("END!")
+            # debug("END!")
             Output("END")
             break
         elif error:
-            debug("ERROR:",error)
+            # debug("ERROR:",error)
             Output("ERROR")
             break
     

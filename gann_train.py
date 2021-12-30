@@ -19,6 +19,9 @@ from datetime import datetime
 import sys, subprocess, threading
 from multiprocessing import Pool
 
+
+from subprocess import TimeoutExpired
+
 logger = logging.getLogger(__name__)
 """
 METADATA
@@ -45,17 +48,19 @@ class SubprocessThread(threading.Thread):
                stdin_pipe=subprocess.PIPE,
                stdout_pipe=subprocess.PIPE,
                stderr_pipe=subprocess.PIPE,
-               stderr_prefix=None):
+               stderr_prefix=None,
+               timeout=None):
     threading.Thread.__init__(self)
+    self.timeout = timeout
     self.stderr_prefix = stderr_prefix
     self.p = subprocess.Popen(args, stdin=stdin_pipe, stdout=stdout_pipe, stderr=stderr_pipe)
 
   def run(self):
     try:
       self.pipeToStdErr(self.p.stderr)
-      self.return_code = self.p.wait()
+      self.return_code = self.p.wait(self.timeout)
       self.error_message = None
-    except (SystemError, OSError):
+    except (SystemError, OSError, TimeoutExpired):
       self.return_code = -1
       self.error_message = "The process crashed or produced too much output."
 
@@ -65,7 +70,7 @@ class SubprocessThread(threading.Thread):
   # found in the stream.
   def pipeToStdErr(self, stream):
     new_line = True
-    while True:
+    while True and stream is not None:
       chunk = stream.readline(1024)
 
       if not chunk:
@@ -123,8 +128,8 @@ class PooledGA(pygad.GA):
         server_call = ['python3', 'gann_server.py', '-dif', '0', '-eval']        
         client_call = ['python3', 'gann_army.py']
 
-        t_client = SubprocessThread(client_call, stderr_prefix="client debug: ")
-        t_server = SubprocessThread(server_call, stdin_pipe=t_client.p.stdout, stdout_pipe=t_client.p.stdin, stderr_prefix="server debug: ")
+        t_client = SubprocessThread(client_call, stderr_prefix="client debug: ", stderr_pipe=None, timeout=60)
+        t_server = SubprocessThread(server_call, stdin_pipe=t_client.p.stdout, stdout_pipe=t_client.p.stdin, stderr_prefix="server debug: ", stderr_pipe=None, timeout=60)
 
         # open pipes
         nn_pipe_path = '.pipes/' + str(t_client.p.pid) + '_nn'

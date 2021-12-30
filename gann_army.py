@@ -81,7 +81,7 @@ class Environment:
         level, resources, board = state.split()
         level = int(level)
         resources = int(resources)
-        debug(f"Building Level: {level}, Current resources: {resources}")
+        # debug(f"Building Level: {level}, Current resources: {resources}")
         self.building_level = level
         self.resources = resources
 
