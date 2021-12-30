@@ -14,6 +14,7 @@ import sys
 import json
 import numpy as np
 from itertools import combinations
+from js_logger import logger
 
 from numpy.core.numeric import moveaxis
 from actions import *
@@ -232,25 +233,28 @@ def playActions(actions):
     _PRINT(';'.join(map(str,actions)), flush=True)
 
 def main():
-
+    
     open(DEBUG_FILE, 'w').close()
     difficulty, base_cost, base_prod = map(int,input().split())
 
     # open nn pipe
     pid = os.getpid()
     name = '.pipes/' + str(pid) + '_nn'
-    with open(name, 'rb', os.O_NONBLOCK) as pipe:
-        print('load nn')
+    logger.debug('Reading neural network')
+    with open(name, 'rb') as pipe:
         nn = pickle.load(pipe)
+        logger.debug('Neural network loaded')
 
     env = Environment(difficulty, base_cost, base_prod, nn=nn)
     while 1:
         signal = env.readEnvironment()
         if signal=="END":
-            debug("GAME OVER")
+            # debug("GAME OVER")
+            logger.debug('GAME OVER')
             sys.exit(0)
         elif signal=="ERROR":
-            debug("ERROR")
+            # debug("ERROR")
+            logger.debug('ERROR')
             sys.exit(1)
 
         env.play()

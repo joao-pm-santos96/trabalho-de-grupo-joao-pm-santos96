@@ -13,7 +13,8 @@ import pygad
 import pygad.nn
 import pygad.gann
 import pickle
-import logging
+from js_logger import logger
+import time
 from datetime import datetime
 
 import sys, subprocess, threading
@@ -22,7 +23,6 @@ from multiprocessing import Pool
 
 from subprocess import TimeoutExpired
 
-logger = logging.getLogger(__name__)
 """
 METADATA
 """
@@ -117,9 +117,11 @@ class PooledGA(pygad.GA):
     def cal_pop_fitness(self):        
 
         # with Pool(processes=self.sol_per_pop) as pool:
+        logger.debug('Populating pool')
         with Pool() as pool:
             pop_fitness = pool.starmap(PooledGA.fitness_wrapper, list(enumerate(self.gann.population_networks)))  
 
+        logger.debug('Pool finished')
         return np.array(pop_fitness)
 
     @staticmethod
@@ -130,44 +132,62 @@ class PooledGA(pygad.GA):
 
         t_client = SubprocessThread(client_call, stderr_prefix="client debug: ", stderr_pipe=None, timeout=None)
         t_server = SubprocessThread(server_call, stdin_pipe=t_client.p.stdout, stdout_pipe=t_client.p.stdin, stderr_prefix="server debug: ", stderr_pipe=None, timeout=None)
-
+        
         # open pipes
         nn_pipe_path = '.pipes/' + str(t_client.p.pid) + '_nn'
+        logger.debug(f'Creating pipe {nn_pipe_path}')
         if not os.path.exists(nn_pipe_path):
             os.mkfifo(nn_pipe_path)
+            logger.debug('Created')
 
         score_pipe_path = '.pipes/' + str(t_server.p.pid) + '_score'
+        logger.debug(f'Creating pipe {score_pipe_path}')
         if not os.path.exists(score_pipe_path):
             os.mkfifo(score_pipe_path)
+            logger.debug('Created')
         
         # send solution
         nn = solution
-        with open(nn_pipe_path, 'wb') as nn_pipe:
-            print('dump nn')
-            pickle.dump(nn, nn_pipe, pickle.HIGHEST_PROTOCOL)
+        logger.debug(f'Opening pipe {nn_pipe_path}')
+        nn_pipe = open(nn_pipe_path, 'wb')
 
-            with open(score_pipe_path, 'r', os.O_NONBLOCK) as score_pipe:
-                print('read score')
+        logger.debug(f'Starting server ({t_server.p.pid})')
+        t_server.start()
+        logger.debug(f'Starting client ({t_client.p.pid})')
+        t_client.start()
 
-                t_client.start()
-                t_server.start()
+        logger.debug('Dumping neural network')
+        pickle.dump(nn, nn_pipe, pickle.HIGHEST_PROTOCOL)
 
-                t_client.join()
-                t_server.join()
+        logger.debug(f'Opening pipe {score_pipe_path}')
+        score_pipe = open(score_pipe_path, 'r')
 
-                # get score
-                score = int(score_pipe.readline())
+        logger.debug(f'Joining client ({t_client.p.pid})')
+        t_client.join()
+        logger.debug(f'Joining server ({t_server.p.pid})')
+        t_server.join()
+
+        logger.debug('Reading score')
+        score = int(score_pipe.read())
+        logger.debug(f'Score {score}')
 
         # remove pipe files
+        logger.debug('Closing & removing pipes')
+        nn_pipe.close()
+        score_pipe.close()
         os.remove(nn_pipe_path)
         os.remove(score_pipe_path)
 
         penalty = 2000 if (t_client.return_code or t_server.return_code) else 0
+        fitness = score - penalty #TODO consider retard
+
+        logger.debug(f'Fitness: {fitness}')
         
-        return score - penalty #TODO consider retard
+        return fitness
 
     def compute(self):
 
+        logger.debug('Calling run')
         self.run()
 
         solution, solution_fitness, solution_idx = self.best_solution()
@@ -188,35 +208,37 @@ class PooledGA(pygad.GA):
 """
 FUNCTIONS DEFINITIONS
 """
-def configLogger():
-    logger.setLevel(level=logging.DEBUG)
+# def configLogger():
+#     logger.setLevel(level=logging.DEBUG)
 
-    formatter = logging.Formatter('%(asctime)s [%(levelname)s]: %(message)s')
-    ch = logging.StreamHandler()
-    fh = logging.FileHandler('log.log', 'w+')
+#     formatter = logging.Formatter('%(asctime)s [%(levelname)s]: %(message)s')
+#     ch = logging.StreamHandler()
+#     fh = logging.FileHandler('log.log', 'w+')
     
-    ch.setLevel(level=logging.DEBUG)
-    fh.setLevel(level=logging.DEBUG)
+#     ch.setLevel(level=logging.DEBUG)
+#     fh.setLevel(level=logging.DEBUG)
     
-    ch.setFormatter(formatter)
-    fh.setFormatter(formatter)
+#     ch.setFormatter(formatter)
+#     fh.setFormatter(formatter)
     
-    logger.addHandler(ch)
-    logger.addHandler(fh)
+#     logger.addHandler(ch)
+#     logger.addHandler(fh)
 
 """
 MAIN
 """
 if __name__ == '__main__':
 
-    configLogger()
+    # configLogger()
+    logger.info('Logger configures')
 
     gann = pygad.gann.GANN(num_solutions=100,
                         num_neurons_input=13,
-                        num_neurons_output=15,
-                        num_neurons_hidden_layers=[20, 17, 15],
+                        num_neurons_output=18,
+                        num_neurons_hidden_layers=[15, 15],
                         hidden_activations="relu",
                         output_activation="softmax")
+    logger.debug('GANN created')
 
     population_vectors = pygad.gann.population_as_vectors(population_networks=gann.population_networks)
 
@@ -238,8 +260,10 @@ if __name__ == '__main__':
                         save_best_solutions=False,
                         stop_criteria="saturate_150",
                         gann=gann)
+    logger.debug('PooledGA created')
 
     logger.info('Starting')
     trainer.compute()
+    logger.info('Done')
 
 

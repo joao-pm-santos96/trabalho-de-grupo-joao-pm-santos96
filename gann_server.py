@@ -10,6 +10,7 @@ import time
 import json
 import os
 import signal
+from js_logger import logger
 
 from collections import deque
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
@@ -497,18 +498,21 @@ def main():
             if env.end():
                 # debug("END!")
                 Output("END")
+                logger.debug('END')
                 break
             elif error:
                 # debug("ERROR:",error)
                 Output("ERROR")
+                logger.debug('ERROR')
                 break
     finally:
         # open score pipe
         pid = os.getpid()
         name = '.pipes/' + str(pid) + '_score'
+        logger.debug(f'Ended at turn {env.turn}')
+        logger.debug('Writing score to pipe')
         with open(name, 'w') as pipe:
-            print('write score')
-            pipe.writelines([str(score)])
+            pipe.write(str(score))
         
 if __name__ == "__main__":
     main()
