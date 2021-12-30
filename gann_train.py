@@ -117,7 +117,7 @@ class PooledGA(pygad.GA):
     def cal_pop_fitness(self):        
 
         # with Pool(processes=self.sol_per_pop) as pool:
-        with Pool(processes=25) as pool:
+        with Pool() as pool:
             pop_fitness = pool.starmap(PooledGA.fitness_wrapper, list(enumerate(self.gann.population_networks)))  
 
         return np.array(pop_fitness)
@@ -128,8 +128,8 @@ class PooledGA(pygad.GA):
         server_call = ['python3', 'gann_server.py', '-dif', '0', '-eval']        
         client_call = ['python3', 'gann_army.py']
 
-        t_client = SubprocessThread(client_call, stderr_prefix="client debug: ", stderr_pipe=None, timeout=60)
-        t_server = SubprocessThread(server_call, stdin_pipe=t_client.p.stdout, stdout_pipe=t_client.p.stdin, stderr_prefix="server debug: ", stderr_pipe=None, timeout=60)
+        t_client = SubprocessThread(client_call, stderr_prefix="client debug: ", stderr_pipe=None, timeout=None)
+        t_server = SubprocessThread(server_call, stdin_pipe=t_client.p.stdout, stdout_pipe=t_client.p.stdin, stderr_prefix="server debug: ", stderr_pipe=None, timeout=None)
 
         # open pipes
         nn_pipe_path = '.pipes/' + str(t_client.p.pid) + '_nn'
@@ -212,9 +212,9 @@ if __name__ == '__main__':
     configLogger()
 
     gann = pygad.gann.GANN(num_solutions=100,
-                        num_neurons_input=8,
-                        num_neurons_output=9,
-                        num_neurons_hidden_layers=[15, 10],
+                        num_neurons_input=13,
+                        num_neurons_output=15,
+                        num_neurons_hidden_layers=[20, 17, 15],
                         hidden_activations="relu",
                         output_activation="softmax")
 

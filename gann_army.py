@@ -13,7 +13,7 @@ import pickle
 import sys
 import json
 import numpy as np
-import itertools
+from itertools import combinations
 
 from numpy.core.numeric import moveaxis
 from actions import *
@@ -53,15 +53,29 @@ class Environment:
         JS STUFF
         """
         self.nn = nn
-        self.nn_actions = np.array([[0,0], 
-                                    [1,0], 
-                                    [-1,0], 
-                                    [0,1], 
-                                    [0,-1],
-                                    [1/2,0], 
-                                    [-1/2,0], 
-                                    [0,1/2], 
-                                    [0,-1/2]])
+        # self.nn_actions = np.array([[0,0], 
+        #                             [1,0], 
+        #                             [-1,0], 
+        #                             [0,1], 
+        #                             [0,-1],
+        #                             [1/2,0], 
+        #                             [-1/2,0], 
+        #                             [0,1/2], 
+        #                             [0,-1/2]])
+
+        self.motions={'U': [0,-1], 
+                    'D': [0,1],
+                    'L': [-1,0],
+                    'R':[1,0]}
+
+
+        base_moves = [None, 'U', 'D', 'L', 'R']
+        self.cenas = base_moves
+        self.cenas.extend(list(combinations(base_moves,2)))
+        self.cenas.append('upgrade')
+        self.cenas.append('recruit_melee')
+        self.cenas.append('recruit_ranged')
+        # TODO outputs for position and amount? same turn recruit both types?
 
         playActions([])
 
@@ -98,19 +112,26 @@ class Environment:
         soldiers = self.board[:,:,0]
         troops = np.argwhere((soldiers==ALLIED_SOLDIER_RANGED) | (soldiers==ALLIED_SOLDIER_MELEE))
 
-        # enemies = np.argwhere((soldiers == ENEMY_SOLDIER_MELEE) | (soldiers == ENEMY_SOLDIER_RANGED))
-        # enemies = [tuple(x) for x in enemies]
+        enemies = np.argwhere((soldiers == ENEMY_SOLDIER_MELEE) | (soldiers == ENEMY_SOLDIER_RANGED))
+        enemies = [tuple(x) for x in enemies]
 
         soldiers_data = []
         for x,y in troops:
-            data = [self.board[x,y,0], 
+            enemy = Environment.findEnemy((x,y), enemies)
+
+            data = [self.difficulty,
+                self.board[x,y,0], 
                 self.board[x,y,1], 
+                self.resources,
+                self.upgrade_cost,
                 int((self.board[x,y-1,0] if y > 0 else WALL) or 0),
                 int((self.board[x,y+1,0] if y < HEIGHT-1 else WALL) or 0),
                 int((self.board[x+1,y,0] if x < WIDTH-1 else WALL) or 0),
                 int((self.board[x-1,y,0] if x > 0 else WALL) or 0),
                 x,
-                y]
+                y,
+                int(enemy[0] if enemy is not None else -1),
+                int(enemy[1] if enemy is not None else -1)]
 
             soldiers_data.append(data)
 
@@ -122,16 +143,36 @@ class Environment:
             x = pos[0]
             y = pos[1]
 
-            move = self.nn_actions[predictions[idx]] 
-            
-            if not np.array_equal(move, [0, 0]):
-                
-                ratio = np.linalg.norm(move)
-                move = np.divide(move, ratio)
-                amount = int(self.board[x,y,1] // (1/ratio))
-                dest = np.add([x,y], move)
+            move = self.cenas[predictions[idx]] 
 
-                actions.append(moveSoldiers((x,y), dest.astype(int), amount))
+            if move is not None:
+                if move == 'upgrade':
+                    actions.append(upgradeBase())
+                    self.resources -= self.upgrade_cost
+
+                elif 'recruit' in move:
+                    cost = SOLDIER_MELEE_COST if 'melee' in move else SOLDIER_RANGED_COST
+                    type = ALLIED_SOLDIER_MELEE if 'melee' in move else ALLIED_SOLDIER_RANGED
+                    amount = self.resources // cost
+
+                    recruitSoldiers(type, amount)
+                    self.resources -= amount * cost
+
+                else:
+                    for dir in move:
+                        if dir is not None:
+                            dest = np.add([x,y], self.motions[dir]).astype(int)
+                            amount = int(self.board[x,y,1] // len(move))
+                            actions.append(moveSoldiers((x,y), dest, amount))
+            
+            # if not np.array_equal(move, [0, 0]):
+                
+            #     ratio = np.linalg.norm(move)
+            #     move = np.divide(move, ratio)
+            #     amount = int(self.board[x,y,1] // (1/ratio))
+            #     dest = np.add([x,y], move)
+
+            #     actions.append(moveSoldiers((x,y), dest.astype(int), amount))
      
         playActions(actions)
 

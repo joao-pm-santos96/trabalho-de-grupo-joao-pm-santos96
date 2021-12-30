@@ -485,29 +485,30 @@ def main():
     env = Environment(level, viewer)    
     Output(f"{level} {env.base_cost} {env.base_prod}")
     ok = input()
+    score = 0
+    try:
+        while 1:
+            env.outputState()
+            error = env.readAndApplyTurnEvents()
 
-    while 1:
-        env.outputState()
-        error = env.readAndApplyTurnEvents()
+            score = env.turn if env.retard<MAX_RETARD else int(MAX_T*1.5-env.turn/2)
 
-        score = env.turn if env.retard<MAX_RETARD else int(MAX_T*1.5-env.turn/2)
-
-        # debug("SCORE: ", score, ", retard: ", env.retard)
-        if env.end():
-            # debug("END!")
-            Output("END")
-            break
-        elif error:
-            # debug("ERROR:",error)
-            Output("ERROR")
-            break
-    
-    # open score pipe
-    pid = os.getpid()
-    name = '.pipes/' + str(pid) + '_score'
-    with open(name, 'w') as pipe:
-        print('write score')
-        pipe.writelines([str(score)])
+            # debug("SCORE: ", score, ", retard: ", env.retard)
+            if env.end():
+                # debug("END!")
+                Output("END")
+                break
+            elif error:
+                # debug("ERROR:",error)
+                Output("ERROR")
+                break
+    finally:
+        # open score pipe
+        pid = os.getpid()
+        name = '.pipes/' + str(pid) + '_score'
+        with open(name, 'w') as pipe:
+            print('write score')
+            pipe.writelines([str(score)])
         
 if __name__ == "__main__":
     main()
