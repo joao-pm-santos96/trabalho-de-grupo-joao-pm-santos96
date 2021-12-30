@@ -433,7 +433,7 @@ class Environment:
         try:
             actions = input()
             if actions=='':
-                debug("No actions were taken!")
+                # debug("No actions were taken!")
                 return [], None
 
             if " " in actions:
@@ -447,7 +447,7 @@ class Environment:
             for action in actions:
                 actionId, *rest = action.split('|')           
 
-                debug("Action received: ", ACTION_LABEL[int(actionId)], ' '.join(rest))
+                # debug("Action received: ", ACTION_LABEL[int(actionId)], ' '.join(rest))
                 nextaction = ACTION_MAP[int(actionId)](rest)
                 if nextaction.error:
                     return None, nextaction.error

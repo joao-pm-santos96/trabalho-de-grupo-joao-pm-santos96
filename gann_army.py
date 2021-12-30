@@ -90,8 +90,8 @@ class Environment:
     def play(self): # agent move, call playActions only ONCE
 
         actions = []
-        print("Current production per turn is:", self.production)
-        print("Current building cost is:", self.upgrade_cost)
+        # print("Current production per turn is:", self.production)
+        # print("Current building cost is:", self.upgrade_cost)
 
         # SOLDIERS DECISION MAKING
 
@@ -198,7 +198,7 @@ def main():
     # open nn pipe
     pid = os.getpid()
     name = '.pipes/' + str(pid) + '_nn'
-    with open(name, 'rb') as pipe:
+    with open(name, 'rb', os.O_NONBLOCK) as pipe:
         print('load nn')
         nn = pickle.load(pipe)
 

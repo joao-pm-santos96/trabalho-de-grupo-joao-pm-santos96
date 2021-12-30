@@ -141,7 +141,7 @@ class PooledGA(pygad.GA):
             print('dump nn')
             pickle.dump(nn, nn_pipe, pickle.HIGHEST_PROTOCOL)
 
-            with open(score_pipe_path, 'r') as score_pipe:
+            with open(score_pipe_path, 'r', os.O_NONBLOCK) as score_pipe:
                 print('read score')
 
                 t_client.start()
