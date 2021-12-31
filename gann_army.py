@@ -74,6 +74,7 @@ class Environment:
 
         # TODO re-add NONE?
         self.outputs.pop(0)
+        logger.debug(f'Size of outputs {len(self.outputs)}')
 
         playActions([])
 
@@ -108,6 +109,7 @@ class Environment:
 
     def play(self): # agent move, call playActions only ONCE
 
+        tic = time.time()
         actions = []
         # print("Current production per turn is:", self.production)
         # print("Current building cost is:", self.upgrade_cost)
@@ -124,25 +126,29 @@ class Environment:
         for x,y in troops:
             enemy = Environment.findEnemy((x,y), enemies)
 
-            data = [self.difficulty,
-                self.board[x,y,0], 
-                self.board[x,y,1], 
-                self.resources,
-                self.upgrade_cost,
-                int((self.board[x,y-1,0] if y > 0 else WALL) or 0),
-                int((self.board[x,y+1,0] if y < HEIGHT-1 else WALL) or 0),
-                int((self.board[x+1,y,0] if x < WIDTH-1 else WALL) or 0),
-                int((self.board[x-1,y,0] if x > 0 else WALL) or 0),
-                x,
-                y,
-                int(enemy[0] if enemy is not None else -1),
-                int(enemy[1] if enemy is not None else -1)]
+            data = [self.difficulty, # difficulty
+                    self.resources, # resources
+                    self.upgrade_cost, # upgrade cost
+                    self.production, # current production
+                    x, # soldier x
+                    y, # soldier y
+                    int(enemy[0] if enemy is not None else -1), # closest enemy x
+                    int(enemy[1] if enemy is not None else -1) # closest enemy y
+            ]
+
+            for a in [x, x+1, x-1]:
+                for b in [y, y+1, y-1]:
+                    condition = (0 < a < WIDTH-1 and 0 < b < HEIGHT-1)
+                    
+                    data.append(int((self.board[a,b,0] if condition else WALL) or -1)) # type in cell (substitute None by -1)
+                    data.append(int(self.board[a,b,1] if condition else 0)) # amount in cell 
 
             soldiers_data.append(data)
 
-        data = np.array(soldiers_data)
+        soldiers_data = np.array(soldiers_data)
+        logger.debug(f'Shape of inputs {soldiers_data.shape}')
 
-        predictions = pygad.nn.predict(last_layer=self.neural_net, data_inputs=data)
+        predictions = pygad.nn.predict(last_layer=self.neural_net, data_inputs=soldiers_data)
 
         for idx, pos in enumerate(troops):
             x = pos[0]
@@ -169,17 +175,9 @@ class Environment:
                             dest = np.add([x,y], self.motions[dir]).astype(int)
                             amount = int(self.board[x,y,1] // len(move))
                             actions.append(moveSoldiers((x,y), dest, amount))
-            
-            # if not np.array_equal(move, [0, 0]):
-                
-            #     ratio = np.linalg.norm(move)
-            #     move = np.divide(move, ratio)
-            #     amount = int(self.board[x,y,1] // (1/ratio))
-            #     dest = np.add([x,y], move)
-
-            #     actions.append(moveSoldiers((x,y), dest.astype(int), amount))
      
         playActions(actions)
+        logger.debug(f'Play took {(time.time() - tic)*1000:.3f} ms')
 
     """
     JS METHODS

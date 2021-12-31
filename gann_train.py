@@ -217,10 +217,10 @@ if __name__ == '__main__':
     # configLogger()
     logger.info('Logger configures')
 
-    gann = pygad.gann.GANN(num_solutions=100,
-                        num_neurons_input=13,
+    gann = pygad.gann.GANN(num_solutions=150,
                         num_neurons_output=17,
-                        num_neurons_hidden_layers=[15, 15],
+                        num_neurons_input=26,
+                        num_neurons_hidden_layers=[20, 22],
                         hidden_activations="relu",
                         output_activation="softmax")
     logger.debug('GANN created')
@@ -229,12 +229,12 @@ if __name__ == '__main__':
 
     initial_population = population_vectors.copy()
 
-    trainer = PooledGA(num_generations=500,
-                        num_parents_mating=10,
+    trainer = PooledGA(num_generations=1000,
+                        num_parents_mating=15,
                         initial_population=initial_population,
                         fitness_func=PooledGA.fitness_func,
-                        # mutation_percent_genes=5,
-                        mutation_probability=0.4,
+                        mutation_percent_genes=5,
+                        # mutation_probability=0.4,
                         init_range_low=-15,
                         init_range_high=15,
                         parent_selection_type='sus',
