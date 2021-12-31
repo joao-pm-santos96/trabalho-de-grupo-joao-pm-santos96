@@ -58,29 +58,22 @@ class Environment:
         JS STUFF
         """
         self.neural_net = neural_net
-        # self.nn_actions = np.array([[0,0], 
-        #                             [1,0], 
-        #                             [-1,0], 
-        #                             [0,1], 
-        #                             [0,-1],
-        #                             [1/2,0], 
-        #                             [-1/2,0], 
-        #                             [0,1/2], 
-        #                             [0,-1/2]])
 
         self.motions={'U': [0,-1], 
                     'D': [0,1],
                     'L': [-1,0],
                     'R':[1,0]}
 
-
         base_moves = [None, 'U', 'D', 'L', 'R']
-        self.cenas = base_moves
-        self.cenas.extend(list(combinations(base_moves,2)))
-        self.cenas.append('upgrade')
-        self.cenas.append('recruit_melee')
-        self.cenas.append('recruit_ranged')
+        self.outputs = base_moves
+        self.outputs.extend(list(combinations(base_moves,2)))
+        self.outputs.append('upgrade')
+        self.outputs.append('recruit_melee')
+        self.outputs.append('recruit_ranged')
         # TODO outputs for position and amount? same turn recruit both types?
+
+        # TODO re-add NONE?
+        self.outputs.pop(0)
 
         playActions([])
 
@@ -155,7 +148,7 @@ class Environment:
             x = pos[0]
             y = pos[1]
 
-            move = self.cenas[predictions[idx]] 
+            move = self.outputs[predictions[idx]] 
 
             if move is not None:
                 if move == 'upgrade':
@@ -290,7 +283,7 @@ def main():
     args = vars(parser.parse_args())
 
     if args['run']: # Run mode
-        neural_net = create_network(13,18,[15,15])
+        neural_net = create_network(13,17,[15,15])
         weights = np.load(args['weights'])['arr_0']
         weights_matrix = nn.layers_weights_as_matrix(neural_net, weights)
         
@@ -307,6 +300,7 @@ def main():
             logger.debug('Neural network loaded')
     
     open(DEBUG_FILE, 'w').close()
+
     difficulty, base_cost, base_prod = map(int,input().split())
 
     env = Environment(difficulty, base_cost, base_prod, neural_net=neural_net)
