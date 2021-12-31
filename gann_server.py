@@ -512,7 +512,7 @@ def main():
         logger.debug(f'Ended at turn {env.turn}')
         logger.debug('Writing score to pipe')
         with open(name, 'w') as pipe:
-            pipe.write(str(score))
+            pipe.write(str(score) + ' ' + str(env.retard))
         
 if __name__ == "__main__":
     main()

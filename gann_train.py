@@ -7,6 +7,7 @@
 IMPORTS
 """
 from functools import partial
+from logging import critical
 import os
 import numpy as np
 import pygad
@@ -15,6 +16,7 @@ import pygad.gann
 import pickle
 from js_logger import logger
 import time
+import signal
 from datetime import datetime
 
 import sys, subprocess, threading
@@ -97,8 +99,18 @@ class PooledGA(pygad.GA):
         super().__init__(num_generations, num_parents_mating, fitness_func, initial_population=initial_population, sol_per_pop=sol_per_pop, num_genes=num_genes, init_range_low=init_range_low, init_range_high=init_range_high, gene_type=gene_type, parent_selection_type=parent_selection_type, keep_parents=keep_parents, K_tournament=K_tournament, crossover_type=crossover_type, crossover_probability=crossover_probability, mutation_type=mutation_type, mutation_probability=mutation_probability, mutation_by_replacement=mutation_by_replacement, mutation_percent_genes=mutation_percent_genes, mutation_num_genes=mutation_num_genes, random_mutation_min_val=random_mutation_min_val, random_mutation_max_val=random_mutation_max_val, gene_space=gene_space, allow_duplicate_genes=allow_duplicate_genes, on_start=on_start, on_fitness=on_fitness, on_parents=on_parents, on_crossover=on_crossover, on_mutation=on_mutation, callback_generation=callback_generation, on_generation=on_generation, on_stop=on_stop, delay_after_gen=delay_after_gen, save_best_solutions=save_best_solutions, save_solutions=save_solutions, suppress_warnings=suppress_warnings, stop_criteria=stop_criteria)
 
         self.gann = gann
+        self.stop = False 
 
-        self.on_generation = partial(PooledGA.callback, gann=self.gann)
+        self.on_generation = partial(PooledGA.callback, gann=self.gann, stop=self.stop)     
+
+        # signal.signal(signal.SIGINT, partial(self.ola_joao, instance=self))  
+
+        # with open('pid', 'w') as f:
+        #     f.write(str(os.getpid()))
+
+    # @staticmethod
+    # def ola_joao(signal, frame, instance):
+    #     instance.stop = True
 
     @staticmethod
     def callback(ga_instance, gann=None):
@@ -109,6 +121,12 @@ class PooledGA(pygad.GA):
 
         logger.info("Generation = {generation}".format(generation=ga_instance.generations_completed))
         logger.info(f'Best fitness: {np.max(ga_instance.last_generation_fitness)}')
+        if ga_instance.best_solution_generation != -1:
+            logger.info("Best fitness value reached after {best_solution_generation} generations.".format(best_solution_generation=ga_instance.best_solution_generation))
+
+        # if stop:
+        #     logger.critical('='*50)
+        #     return 'stop'
 
     @staticmethod
     def fitness_wrapper(idx, solution):
@@ -167,9 +185,11 @@ class PooledGA(pygad.GA):
         logger.debug(f'Joining server ({t_server.p.pid})')
         t_server.join()
 
-        logger.debug('Reading score')
-        score = int(score_pipe.read())
-        logger.debug(f'Score {score}')
+        logger.debug('Reading score & retard')
+        msg = score_pipe.read().split()
+        score = int(msg[0])
+        retard = float(msg[1])
+        logger.debug(f'Score {score} | Retard {retard}')
 
         # remove pipe files
         logger.debug('Closing & removing pipes')
@@ -214,12 +234,9 @@ MAIN
 """
 if __name__ == '__main__':
 
-    # configLogger()
-    logger.info('Logger configures')
-
     gann = pygad.gann.GANN(num_solutions=150,
-                        num_neurons_output=17,
                         num_neurons_input=26,
+                        num_neurons_output=17,
                         num_neurons_hidden_layers=[20, 22],
                         hidden_activations="relu",
                         output_activation="softmax")
@@ -243,7 +260,7 @@ if __name__ == '__main__':
                         # keep_parents=1,
                         allow_duplicate_genes=False,
                         save_best_solutions=False,
-                        stop_criteria=["reach_2000", "saturate_75"],
+                        stop_criteria=["reach_2000"],
                         gann=gann)
 
     logger.debug('PooledGA created')

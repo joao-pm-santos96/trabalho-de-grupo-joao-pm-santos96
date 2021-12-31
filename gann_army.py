@@ -149,6 +149,10 @@ class Environment:
         logger.debug(f'Shape of inputs {soldiers_data.shape}')
 
         predictions = pygad.nn.predict(last_layer=self.neural_net, data_inputs=soldiers_data)
+        # logger.debug(f'Predictions: {predictions}')
+
+        # for pred in predictions:
+        #     logger.debug(self.outputs[pred])
 
         for idx, pos in enumerate(troops):
             x = pos[0]
@@ -166,8 +170,9 @@ class Environment:
                     type = ALLIED_SOLDIER_MELEE if 'melee' in move else ALLIED_SOLDIER_RANGED
                     amount = self.resources // cost
 
-                    recruitSoldiers(type, amount)
-                    self.resources -= amount * cost
+                    if amount > 0:
+                        actions.append(recruitSoldiers(type, amount))
+                        self.resources -= amount * cost
 
                 else:
                     for dir in move:
@@ -281,7 +286,7 @@ def main():
     args = vars(parser.parse_args())
 
     if args['run']: # Run mode
-        neural_net = create_network(13,17,[15,15])
+        neural_net = create_network(26,17,[20,22])
         weights = np.load(args['weights'])['arr_0']
         weights_matrix = nn.layers_weights_as_matrix(neural_net, weights)
         
