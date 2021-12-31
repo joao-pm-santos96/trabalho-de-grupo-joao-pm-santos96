@@ -208,21 +208,6 @@ class PooledGA(pygad.GA):
 """
 FUNCTIONS DEFINITIONS
 """
-# def configLogger():
-#     logger.setLevel(level=logging.DEBUG)
-
-#     formatter = logging.Formatter('%(asctime)s [%(levelname)s]: %(message)s')
-#     ch = logging.StreamHandler()
-#     fh = logging.FileHandler('log.log', 'w+')
-    
-#     ch.setLevel(level=logging.DEBUG)
-#     fh.setLevel(level=logging.DEBUG)
-    
-#     ch.setFormatter(formatter)
-#     fh.setFormatter(formatter)
-    
-#     logger.addHandler(ch)
-#     logger.addHandler(fh)
 
 """
 MAIN

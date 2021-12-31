@@ -10,6 +10,7 @@ from logging import log
 import os
 import time
 import pygad
+from pygad import nn
 import pickle
 import sys
 import json
@@ -17,6 +18,7 @@ import numpy as np
 from itertools import combinations
 from js_logger import logger
 import select
+import argparse
 
 from numpy.core.numeric import moveaxis
 from actions import *
@@ -44,7 +46,7 @@ TODO
 CLASS DEFINITIONS
 """
 class Environment:
-    def __init__(self, difficulty, base_cost, base_prod, nn=None):
+    def __init__(self, difficulty, base_cost, base_prod, neural_net=None):
         self.difficulty = difficulty
         self.resources = 0
         self.building_level = 0
@@ -55,7 +57,7 @@ class Environment:
         """
         JS STUFF
         """
-        self.nn = nn
+        self.neural_net = neural_net
         # self.nn_actions = np.array([[0,0], 
         #                             [1,0], 
         #                             [-1,0], 
@@ -147,7 +149,7 @@ class Environment:
 
         data = np.array(soldiers_data)
 
-        predictions = pygad.nn.predict(last_layer=self.nn, data_inputs=data)
+        predictions = pygad.nn.predict(last_layer=self.neural_net, data_inputs=data)
 
         for idx, pos in enumerate(troops):
             x = pos[0]
@@ -241,20 +243,73 @@ def moveSoldiers(pos, to, amount):
 def playActions(actions):
     _PRINT(';'.join(map(str,actions)), flush=True)
 
+def create_network(num_neurons_input, 
+                   num_neurons_output, 
+                   num_neurons_hidden_layers=[], 
+                   output_activation="softmax", 
+                   hidden_activations="relu"):
+
+    # Creating the input layer as an instance of the nn.InputLayer class.
+    input_layer = nn.InputLayer(num_neurons_input)
+
+    if type(hidden_activations) not in [list,tuple]:
+        hidden_activations = [hidden_activations]*len(num_neurons_hidden_layers)
+
+    if len(num_neurons_hidden_layers) > 0:
+        # If there are hidden layers, then the first hidden layer is connected to the input layer.
+        hidden_layer = nn.DenseLayer(num_neurons=num_neurons_hidden_layers.pop(0), 
+                                     previous_layer=input_layer, 
+                                     activation_function=hidden_activations.pop(0))
+        # For the other hidden layers, each hidden layer is connected to its preceding hidden layer.
+        for hidden_layer_idx in range(len(num_neurons_hidden_layers)):
+            hidden_layer = nn.DenseLayer(num_neurons=num_neurons_hidden_layers.pop(0), 
+                                         previous_layer=hidden_layer, 
+                                         activation_function=hidden_activations.pop(0))
+
+        # The last hidden layer is connected to the output layer.
+        # The output layer is created as an instance of the nn.DenseLayer class.
+        output_layer = nn.DenseLayer(num_neurons=num_neurons_output, 
+                                     previous_layer=hidden_layer, 
+                                     activation_function=output_activation)
+
+    # If there are no hidden layers, then the output layer is connected directly to the input layer.
+    elif len(num_neurons_hidden_layers) == 0:
+        # The output layer is created as an instance of the nn.DenseLayer class.
+        output_layer = nn.DenseLayer(num_neurons=num_neurons_output, 
+                                     previous_layer=input_layer,
+                                     activation_function=output_activation)
+
+    # Returning the reference to the last layer in the network architecture which is the output layer. Based on such reference, all network layer can be fetched.
+    return output_layer
+
 def main():
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-r', '--run', action='store_true')
+    parser.add_argument('-w', '--weights', type=str)
+    args = vars(parser.parse_args())
+
+    if args['run']: # Run mode
+        neural_net = create_network(13,18,[15,15])
+        weights = np.load(args['weights'])['arr_0']
+        weights_matrix = nn.layers_weights_as_matrix(neural_net, weights)
+        
+        nn.update_layers_trained_weights(last_layer=neural_net,
+                                        final_weights=weights_matrix)
+        
+    else: # Train mode
+        # open nn pipe
+        pid = os.getpid()
+        name = '.pipes/' + str(pid) + '_nn'
+        logger.debug('Reading neural network')
+        with open(name, 'rb') as pipe:
+            neural_net = pickle.load(pipe)
+            logger.debug('Neural network loaded')
     
     open(DEBUG_FILE, 'w').close()
     difficulty, base_cost, base_prod = map(int,input().split())
 
-    # open nn pipe
-    pid = os.getpid()
-    name = '.pipes/' + str(pid) + '_nn'
-    logger.debug('Reading neural network')
-    with open(name, 'rb') as pipe:
-        nn = pickle.load(pipe)
-        logger.debug('Neural network loaded')
-
-    env = Environment(difficulty, base_cost, base_prod, nn=nn)
+    env = Environment(difficulty, base_cost, base_prod, neural_net=neural_net)
     while 1:
         signal = env.readEnvironment()
         if signal=="END":
