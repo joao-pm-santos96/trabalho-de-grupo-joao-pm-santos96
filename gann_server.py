@@ -78,7 +78,8 @@ class Environment:
         self.retard = 0
         self.actions_taken = 0
 
-        self.turn = 0
+        # self.turn = 0
+        self.turn = 1
 
         self.resources = 500
         self.board = [[[None, 0] for w in range(WIDTH)] for h in range(HEIGHT)]
@@ -416,7 +417,6 @@ class Environment:
                 if self.viewer:
                     self.viewer.drawmap(self.board, self.get_state_dict()) # 5
                     
-                    
             except TimeoutError:
                 debug(f"ACTIONS were not read in time ({MAX_PROCESS_TIME}ms)!")
                 repeat = True
@@ -503,12 +503,12 @@ def main():
             elif error:
                 # debug("ERROR:",error)
                 Output("ERROR")
-                logger.debug('ERROR')
+                logger.debug(f'ERROR: {error}')
                 break
     finally:
         # open score pipe
         pid = os.getpid()
-        name = '.pipes/' + str(pid) + '_score'
+        name = '.pipes/' + str(pid) + '_server'
         logger.debug(f'Ended at turn {env.turn}')
         logger.debug('Writing score to pipe')
         with open(name, 'w') as pipe:

@@ -19,6 +19,7 @@ from itertools import combinations
 from js_logger import logger
 import select
 import argparse
+import random
 
 from numpy.core.numeric import moveaxis
 from actions import *
@@ -76,6 +77,9 @@ class Environment:
         # TODO re-add NONE?
         logger.debug(f'Size of outputs {len(self.outputs)}')
 
+        self.moves = 0
+        self.valid_moves = 0
+
         playActions([])
 
     @property
@@ -117,12 +121,12 @@ class Environment:
         # SOLDIERS DECISION MAKING
 
         soldiers = self.board[:,:,0]
-        troops = np.argwhere((soldiers==ALLIED_SOLDIER_RANGED) | (soldiers==ALLIED_SOLDIER_MELEE))
+        troops = np.argwhere((soldiers==ALLIED_SOLDIER_RANGED) | (soldiers==ALLIED_SOLDIER_MELEE) | (soldiers==ALLIED_MAIN_BUILDING))
 
         enemies = np.argwhere((soldiers == ENEMY_SOLDIER_MELEE) | (soldiers == ENEMY_SOLDIER_RANGED))
         enemies = [tuple(x) for x in enemies]
 
-        soldiers_data = []
+        # soldiers_data = []
         for x,y in troops:
             enemy = Environment.findEnemy((x,y), enemies)
 
@@ -143,43 +147,88 @@ class Environment:
                     data.append(int((self.board[a,b,0] if condition else WALL) or -1)) # type in cell (substitute None by -1)
                     data.append(int(self.board[a,b,1] if condition else 0)) # amount in cell 
 
-            soldiers_data.append(data)
+            # soldiers_data.append(data)
 
-        soldiers_data = np.array(soldiers_data)
-        logger.debug(f'Shape of inputs {soldiers_data.shape}')
+            prediction = pygad.nn.predict(last_layer=self.neural_net, data_inputs=np.array([data]))
 
-        predictions = pygad.nn.predict(last_layer=self.neural_net, data_inputs=soldiers_data)
-        # logger.debug(f'Predictions: {predictions}')
+            logger.debug(f'Prediction {prediction}')
 
-        # for pred in predictions:
-        #     logger.debug(self.outputs[pred])
-
-        for idx, pos in enumerate(troops):
-            x = pos[0]
-            y = pos[1]
-
-            move = self.outputs[predictions[idx]] 
+            move = self.outputs[prediction[0]]
 
             if move is not None:
+                self.moves += 1
                 if move == 'upgrade':
-                    actions.append(upgradeBase())
-                    self.resources -= self.upgrade_cost
-
+                    
+                    if self.resources >= self.upgrade_cost:
+                        actions.append(upgradeBase())
+                        self.resources -= self.upgrade_cost
+                        self.valid_moves += 1
+                    
                 elif 'recruit' in move:
                     cost = SOLDIER_MELEE_COST if 'melee' in move else SOLDIER_RANGED_COST
                     type = ALLIED_SOLDIER_MELEE if 'melee' in move else ALLIED_SOLDIER_RANGED
+
                     amount = self.resources // cost
 
-                    if amount > 0:
+                    if amount > 0 and type in [EMPTY_CELL, self.board[1,VCENTER,0]]:
                         actions.append(recruitSoldiers(type, amount))
                         self.resources -= amount * cost
-
+                        self.valid_moves += 1
+                    
                 else:
                     for dir in move:
                         if dir is not None:
                             dest = np.add([x,y], self.motions[dir]).astype(int)
                             amount = int(self.board[x,y,1] // len(move))
-                            actions.append(moveSoldiers((x,y), dest, amount))
+
+                            if amount > 0 \
+                                and 0 < dest[0] < WIDTH-1 \
+                                and 0 < dest[1] < HEIGHT-1:
+
+                                if self.board[dest[0], dest[1],0] in [EMPTY_CELL, self.board[x,y,0]]: 
+                                        
+                                    actions.append(moveSoldiers((x,y), dest, amount))
+                                    self.valid_moves += 1
+                            
+
+
+
+        # soldiers_data = np.array(soldiers_data)
+        # logger.debug(f'Shape of inputs {soldiers_data.shape}')
+
+
+        # logger.debug(f'Predictions: {np.array(self.outputs)[np.array(predictions)]}')
+
+        # for idx, pos in enumerate(troops):
+        #     x = pos[0]
+        #     y = pos[1]
+
+        #     move = self.outputs[predictions[idx]] 
+        #     logger.debug(move)
+
+        #     if move is not None:
+        #         if move == 'upgrade':
+        #             # logger.debug('Upgrading')
+        #             actions.append(upgradeBase())
+        #             self.resources -= self.upgrade_cost
+
+        #         elif 'recruit' in move:
+        #             cost = SOLDIER_MELEE_COST if 'melee' in move else SOLDIER_RANGED_COST
+        #             type = ALLIED_SOLDIER_MELEE if 'melee' in move else ALLIED_SOLDIER_RANGED
+        #             # logger.debug(f'Recruting {type}')
+        #             amount = self.resources // cost
+
+        #             # if amount > 0:
+        #             actions.append(recruitSoldiers(type, amount))
+        #             self.resources -= amount * cost
+
+        #         else:
+        #             # logger.debug(f'Moving {move}')
+        #             for dir in move:
+        #                 if dir is not None:
+        #                     dest = np.add([x,y], self.motions[dir]).astype(int)
+        #                     amount = int(self.board[x,y,1] // len(move))
+        #                     actions.append(moveSoldiers((x,y), dest, amount))
      
         playActions(actions)
         logger.debug(f'Play took {(time.time() - tic)*1000:.3f} ms')
@@ -296,7 +345,7 @@ def main():
     else: # Train mode
         # open nn pipe
         pid = os.getpid()
-        name = '.pipes/' + str(pid) + '_nn'
+        name = '.pipes/' + str(pid) + '_client'
         logger.debug('Reading neural network')
         with open(name, 'rb') as pipe:
             neural_net = pickle.load(pipe)
@@ -309,6 +358,11 @@ def main():
     env = Environment(difficulty, base_cost, base_prod, neural_net=neural_net)
     while 1:
         signal = env.readEnvironment()
+
+        if signal in ['END', 'ERROR'] and not args['run']:
+            with open(name, 'w', os.O_NONBLOCK) as pipe:
+                pipe.write(str(env.valid_moves/env.moves)) 
+
         if signal=="END":
             # debug("GAME OVER")
             logger.debug('GAME OVER')

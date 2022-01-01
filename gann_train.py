@@ -102,15 +102,6 @@ class PooledGA(pygad.GA):
 
         self.on_generation = partial(PooledGA.callback, gann=self.gann)     
 
-        # signal.signal(signal.SIGINT, partial(self.ola_joao, instance=self))  
-
-        # with open('pid', 'w') as f:
-        #     f.write(str(os.getpid()))
-
-    # @staticmethod
-    # def ola_joao(signal, frame, instance):
-    #     instance.stop = True
-
     @staticmethod
     def callback(ga_instance, gann=None):
         # am i absolutely sure of this?
@@ -120,14 +111,12 @@ class PooledGA(pygad.GA):
 
         logger.info("Generation: {generation}".format(generation=ga_instance.generations_completed))
         logger.info(f'Best fitness: {np.max(ga_instance.last_generation_fitness)}')
-        logger.info(f'Reached end: {sum(np.array(ga_instance.last_generation_fitness)>=0)/len(ga_instance.last_generation_fitness) * 100:.2f}%')
+        # logger.info(f'Reached end: {sum(np.array(ga_instance.last_generation_fitness)>=0)/len(ga_instance.last_generation_fitness) * 100:.2f}%')
+
+        # logger.info(f'Fitnesses: {ga_instance.last_generation_fitness}')
         
         if ga_instance.best_solution_generation != -1:
             logger.info("Best fitness value reached after {best_solution_generation} generations.".format(best_solution_generation=ga_instance.best_solution_generation))
-
-        # if stop:
-        #     logger.critical('='*50)
-        #     return 'stop'
 
     @staticmethod
     def fitness_wrapper(idx, solution):
@@ -135,8 +124,8 @@ class PooledGA(pygad.GA):
 
     def cal_pop_fitness(self):        
 
-        # with Pool(processes=self.sol_per_pop) as pool:
         logger.debug('Populating pool')
+        # with Pool(processes=self.sol_per_pop) as pool:
         with Pool() as pool:
             pop_fitness = pool.starmap(PooledGA.fitness_wrapper, list(enumerate(self.gann.population_networks)))  
 
@@ -153,22 +142,22 @@ class PooledGA(pygad.GA):
         t_server = SubprocessThread(server_call, stdin_pipe=t_client.p.stdout, stdout_pipe=t_client.p.stdin, stderr_prefix="server debug: ", stderr_pipe=None, timeout=None)
         
         # open pipes
-        nn_pipe_path = '.pipes/' + str(t_client.p.pid) + '_nn'
-        logger.debug(f'Creating pipe {nn_pipe_path}')
-        if not os.path.exists(nn_pipe_path):
-            os.mkfifo(nn_pipe_path)
+        client_pipe_path = '.pipes/' + str(t_client.p.pid) + '_client'
+        logger.debug(f'Creating pipe {client_pipe_path}')
+        if not os.path.exists(client_pipe_path):
+            os.mkfifo(client_pipe_path)
             logger.debug('Created')
 
-        score_pipe_path = '.pipes/' + str(t_server.p.pid) + '_score'
-        logger.debug(f'Creating pipe {score_pipe_path}')
-        if not os.path.exists(score_pipe_path):
-            os.mkfifo(score_pipe_path)
+        server_pipe_path = '.pipes/' + str(t_server.p.pid) + '_server'
+        logger.debug(f'Creating pipe {server_pipe_path}')
+        if not os.path.exists(server_pipe_path):
+            os.mkfifo(server_pipe_path)
             logger.debug('Created')
         
         # send solution
         nn = solution
-        logger.debug(f'Opening pipe {nn_pipe_path}')
-        nn_pipe = open(nn_pipe_path, 'wb')
+        logger.debug(f'Opening pipe {client_pipe_path}')
+        client_pipe = open(client_pipe_path, 'wb')
 
         logger.debug(f'Starting server ({t_server.p.pid})')
         t_server.start()
@@ -176,10 +165,13 @@ class PooledGA(pygad.GA):
         t_client.start()
 
         logger.debug('Dumping neural network')
-        pickle.dump(nn, nn_pipe, pickle.HIGHEST_PROTOCOL)
+        pickle.dump(nn, client_pipe, pickle.HIGHEST_PROTOCOL)
 
-        logger.debug(f'Opening pipe {score_pipe_path}')
-        score_pipe = open(score_pipe_path, 'r')
+        client_pipe.close()
+        client_pipe = open(client_pipe_path, 'r')
+
+        logger.debug(f'Opening pipe {server_pipe_path}')
+        server_pipe = open(server_pipe_path, 'r')
 
         logger.debug(f'Joining client ({t_client.p.pid})')
         t_client.join()
@@ -187,20 +179,23 @@ class PooledGA(pygad.GA):
         t_server.join()
 
         logger.debug('Reading score & retard')
-        msg = score_pipe.read().split()
+        msg = server_pipe.read().split()
+        good_moves_ratio = float(client_pipe.read())
         score = int(msg[0])
         retard = float(msg[1])
-        logger.debug(f'Score {score} | Retard {retard}')
+        logger.debug(f'Score {score} | Retard {retard} | Good Moves {good_moves_ratio}')
 
         # remove pipe files
         logger.debug('Closing & removing pipes')
-        nn_pipe.close()
-        score_pipe.close()
-        os.remove(nn_pipe_path)
-        os.remove(score_pipe_path)
+        client_pipe.close()
+        server_pipe.close()
+        os.remove(client_pipe_path)
+        os.remove(server_pipe_path)
 
-        penalty = 300 if (t_client.return_code or t_server.return_code) else 0
-        fitness = (score/20 + retard/200) - penalty
+        penalty = (0.5) if (t_client.return_code or t_server.return_code) else 1
+        reward = (retard / 20000) 
+        level = (score / 2000)
+        fitness = ((level * 34) + (reward * 33) + (good_moves_ratio * 33)) * penalty
 
         logger.debug(f'Fitness: {fitness}')
         
@@ -235,10 +230,10 @@ MAIN
 """
 if __name__ == '__main__':
 
-    gann = pygad.gann.GANN(num_solutions=150,
+    gann = pygad.gann.GANN(num_solutions=200,
                         num_neurons_input=26,
                         num_neurons_output=17,
-                        num_neurons_hidden_layers=[20, 22],
+                        num_neurons_hidden_layers=[26, 30, 17],
                         hidden_activations="relu",
                         output_activation="softmax")
     
@@ -249,20 +244,20 @@ if __name__ == '__main__':
     initial_population = population_vectors.copy()
 
     trainer = PooledGA(num_generations=1000,
-                        num_parents_mating=30,
+                        num_parents_mating=50,
                         initial_population=initial_population,
                         fitness_func=PooledGA.fitness_func,
-                        mutation_percent_genes=5,
+                        mutation_percent_genes=15,
                         # mutation_probability=0.4,
-                        init_range_low=-15,
-                        init_range_high=15,
+                        init_range_low=-1,
+                        init_range_high=1,
                         parent_selection_type='sus',
-                        crossover_type='uniform',
+                        crossover_type='single_point',
                         mutation_type='random',
                         # keep_parents=1,
                         allow_duplicate_genes=False,
                         save_best_solutions=False,
-                        stop_criteria=["reach_200"],
+                        stop_criteria=["reach_90"],
                         gann=gann)
 
     logger.debug('PooledGA created')
