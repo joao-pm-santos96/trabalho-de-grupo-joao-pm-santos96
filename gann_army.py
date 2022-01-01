@@ -64,8 +64,9 @@ class Environment:
                     'L': [-1,0],
                     'R':[1,0]}
 
-        base_moves = [None, 'U', 'D', 'L', 'R']
+        base_moves = ['U', 'D', 'L', 'R']
         self.outputs = base_moves
+        base_moves = [None, 'U', 'D', 'L', 'R']
         self.outputs.extend(list(combinations(base_moves,2)))
         self.outputs.append('upgrade')
         self.outputs.append('recruit_melee')
@@ -73,7 +74,6 @@ class Environment:
         # TODO outputs for position and amount? same turn recruit both types?
 
         # TODO re-add NONE?
-        self.outputs.pop(0)
         logger.debug(f'Size of outputs {len(self.outputs)}')
 
         playActions([])
