@@ -199,7 +199,7 @@ class PooledGA(pygad.GA):
         os.remove(nn_pipe_path)
         os.remove(score_pipe_path)
 
-        penalty = 3 if (t_client.return_code or t_server.return_code) else 0
+        penalty = 300 if (t_client.return_code or t_server.return_code) else 0
         fitness = (score/20 + retard/200) - penalty
 
         logger.debug(f'Fitness: {fitness}')
@@ -249,7 +249,7 @@ if __name__ == '__main__':
     initial_population = population_vectors.copy()
 
     trainer = PooledGA(num_generations=1000,
-                        num_parents_mating=15,
+                        num_parents_mating=30,
                         initial_population=initial_population,
                         fitness_func=PooledGA.fitness_func,
                         mutation_percent_genes=5,
@@ -262,7 +262,7 @@ if __name__ == '__main__':
                         # keep_parents=1,
                         allow_duplicate_genes=False,
                         save_best_solutions=False,
-                        stop_criteria=["reach_2000"],
+                        stop_criteria=["reach_200"],
                         gann=gann)
 
     logger.debug('PooledGA created')
