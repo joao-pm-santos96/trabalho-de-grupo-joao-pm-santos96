@@ -92,7 +92,7 @@ class Environment:
 
     def readEnvironment(self):
         # state = input()
-        i, o, e = select.select( [sys.stdin], [], [], 0.500 )
+        i, o, e = select.select( [sys.stdin], [], [], 0.250 )
 
         if i:
             state = sys.stdin.readline().strip()
@@ -341,9 +341,3 @@ MAIN
 """
 if __name__ == '__main__':
     main()
-
-    # tree = DecisionTree()
-    # tree.buildSplitTree()
-
-    # a = tree.selectMove([None, 1, None, None], tree.root)
-    # print(a)

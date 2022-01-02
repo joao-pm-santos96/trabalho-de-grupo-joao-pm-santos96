@@ -123,7 +123,7 @@ class PooledGA(pygad.GA):
 
         logger.debug('Populating pool')
         # with Pool(processes=self.sol_per_pop) as pool:
-        with Pool(processes=os.cpu_count()-1) as pool:
+        with Pool() as pool:
             pop_fitness = pool.starmap(PooledGA.fitness_wrapper, list(enumerate(self.gann.population_networks)))  
 
         logger.debug('Pool finished')
