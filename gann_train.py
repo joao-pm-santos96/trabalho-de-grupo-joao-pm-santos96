@@ -113,7 +113,8 @@ class PooledGA(pygad.GA):
 
         # Save current best
         solution, _, _ = self.best_solution()
-        np.savez('current_best', solution)        
+        np.savez('current_best', solution)  
+        logger.info('Saved current_best')      
 
         if ga_instance.best_solution_generation != -1:
             logger.info("Best fitness value reached after {best_solution_generation} generations.".format(best_solution_generation=ga_instance.best_solution_generation))
@@ -167,10 +168,6 @@ class PooledGA(pygad.GA):
         logger.debug('Dumping neural network')
         pickle.dump(nn, client_pipe, pickle.HIGHEST_PROTOCOL)
 
-        # open pipe again as read
-        client_pipe.close()
-        client_pipe = open(client_pipe_path, 'r')
-
         logger.debug(f'Opening pipe {server_pipe_path}')
         server_pipe = open(server_pipe_path, 'r')
 
@@ -183,12 +180,7 @@ class PooledGA(pygad.GA):
         msg = server_pipe.read().split()
         score = int(msg[0])
         retard = float(msg[1])
-        msg = client_pipe.read().split()
-        valid_moves = int(msg[0])
-        moves_count = int(msg[1])
-        # invalid_moves = moves_count - valid_moves
-        # logger.debug(f'Score {score} | Retard {retard} | Valid Moves {valid_moves} | Total Moves {moves_count}')
-
+       
         # remove pipe files
         logger.debug('Closing & removing pipes')
         client_pipe.close()
@@ -196,12 +188,7 @@ class PooledGA(pygad.GA):
         os.remove(client_pipe_path)
         os.remove(server_pipe_path)
 
-        penalty = (0.85) if (t_client.return_code or t_server.return_code) else 1
-        # reward = (retard / 20000) 
-        # level = (score / 2000)
-
-        # fitness = (valid_moves / mov0es_count) * penalty
-        # fitness = ((level * 34) + (reward * 33) + (good_moves_ratio * 33)) * penalty
+        penalty = (0.75) if (t_client.return_code or t_server.return_code) else 1
         fitness = score * penalty
 
         logger.debug(f'Fitness: {fitness}')
@@ -237,7 +224,7 @@ MAIN
 """
 if __name__ == '__main__':
 
-    gann = pygad.gann.GANN(num_solutions=100,
+    gann = pygad.gann.GANN(num_solutions=250,
                         num_neurons_input=26,
                         num_neurons_output=17,
                         num_neurons_hidden_layers=[20, 20],
@@ -250,8 +237,8 @@ if __name__ == '__main__':
 
     initial_population = population_vectors.copy()
 
-    trainer = PooledGA(num_generations=1000,
-                        num_parents_mating=50,
+    trainer = PooledGA(num_generations=10000,
+                        num_parents_mating=75,
                         initial_population=initial_population,
                         fitness_func=PooledGA.fitness_func,
                         mutation_percent_genes=25,
@@ -259,12 +246,12 @@ if __name__ == '__main__':
                         init_range_low=-5,
                         init_range_high=5,
                         parent_selection_type='sus',
-                        crossover_type='uniform',
+                        crossover_type='single_point',
                         mutation_type='random',
                         # keep_parents=1,
                         allow_duplicate_genes=False,
                         save_best_solutions=False,
-                        stop_criteria=["reach_2000"],
+                        stop_criteria=["reach_100"],
                         gann=gann)
 
     logger.info('PooledGA created')
