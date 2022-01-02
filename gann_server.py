@@ -4,6 +4,7 @@
 
 from __future__ import print_function
 import random
+import select
 import sys
 import traceback
 import time
@@ -432,7 +433,18 @@ class Environment:
 
     def readActions(self): # error handling, syntax handling (1)
         try:
-            actions = input()
+            # actions = input()
+            # if actions=='':
+            #     # debug("No actions were taken!")
+            #     return [], None
+
+            i, o, e = select.select( [sys.stdin], [], [])
+            actions=''
+            if i:
+                actions = sys.stdin.readline().strip()
+            else:
+                return [], None
+            
             if actions=='':
                 # debug("No actions were taken!")
                 return [], None
