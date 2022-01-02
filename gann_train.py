@@ -135,7 +135,7 @@ class PooledGA(pygad.GA):
     @staticmethod
     def fitness_func(solution, index):
         
-        server_call = ['python3', 'gann_server.py', '-dif', '0', '-eval']        
+        server_call = ['python3', 'gann_server.py', '-dif', '1', '-eval']        
         client_call = ['python3', 'gann_army.py']
 
         t_client = SubprocessThread(client_call, stderr_prefix="client debug: ", stderr_pipe=None, timeout=None)

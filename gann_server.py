@@ -430,7 +430,6 @@ class Environment:
                 
             self.turn += 1
 
-
     def readActions(self): # error handling, syntax handling (1)
         try:
             # actions = input()
@@ -438,8 +437,8 @@ class Environment:
             #     # debug("No actions were taken!")
             #     return [], None
 
-            i, o, e = select.select( [sys.stdin], [], [])
             actions=''
+            i, o, e = select.select( [sys.stdin], [], [])
             if i:
                 actions = sys.stdin.readline().strip()
             else:
