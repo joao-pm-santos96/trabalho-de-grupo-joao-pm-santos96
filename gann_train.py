@@ -99,18 +99,21 @@ class PooledGA(pygad.GA):
         super().__init__(num_generations, num_parents_mating, fitness_func, initial_population=initial_population, sol_per_pop=sol_per_pop, num_genes=num_genes, init_range_low=init_range_low, init_range_high=init_range_high, gene_type=gene_type, parent_selection_type=parent_selection_type, keep_parents=keep_parents, K_tournament=K_tournament, crossover_type=crossover_type, crossover_probability=crossover_probability, mutation_type=mutation_type, mutation_probability=mutation_probability, mutation_by_replacement=mutation_by_replacement, mutation_percent_genes=mutation_percent_genes, mutation_num_genes=mutation_num_genes, random_mutation_min_val=random_mutation_min_val, random_mutation_max_val=random_mutation_max_val, gene_space=gene_space, allow_duplicate_genes=allow_duplicate_genes, on_start=on_start, on_fitness=on_fitness, on_parents=on_parents, on_crossover=on_crossover, on_mutation=on_mutation, callback_generation=callback_generation, on_generation=on_generation, on_stop=on_stop, delay_after_gen=delay_after_gen, save_best_solutions=save_best_solutions, save_solutions=save_solutions, suppress_warnings=suppress_warnings, stop_criteria=stop_criteria)
 
         self.gann = gann
-        self.on_generation = partial(PooledGA.callback, gann=self.gann)     
+        self.on_generation = partial(PooledGA.callback, self=self)     
 
     @staticmethod
-    def callback(ga_instance, gann=None):
+    def callback(ga_instance, self=None):
         
-        population_matrices = pygad.gann.population_as_matrices(population_networks=gann.population_networks, population_vectors=ga_instance.population)
+        population_matrices = pygad.gann.population_as_matrices(population_networks=self.gann.population_networks, population_vectors=ga_instance.population)
         
-        gann.update_population_trained_weights(population_trained_weights=population_matrices)
+        self.gann.update_population_trained_weights(population_trained_weights=population_matrices)
 
         logger.info("Generation: {generation}".format(generation=ga_instance.generations_completed))
         logger.info(f'Best fitness: {np.max(ga_instance.last_generation_fitness)}')
-        # logger.info(f'Reached end: {sum(np.array(ga_instance.last_generation_fitness)>=0)/len(ga_instance.last_generation_fitness) * 100:.2f}%')
+
+        # Save current best
+        solution, _, _ = self.best_solution()
+        np.savez('current_best', solution)        
 
         if ga_instance.best_solution_generation != -1:
             logger.info("Best fitness value reached after {best_solution_generation} generations.".format(best_solution_generation=ga_instance.best_solution_generation))
@@ -183,8 +186,8 @@ class PooledGA(pygad.GA):
         msg = client_pipe.read().split()
         valid_moves = int(msg[0])
         moves_count = int(msg[1])
-        invalid_moves = moves_count - valid_moves
-        logger.debug(f'Score {score} | Retard {retard} | Valid Moves {valid_moves} | Total Moves {moves_count}')
+        # invalid_moves = moves_count - valid_moves
+        # logger.debug(f'Score {score} | Retard {retard} | Valid Moves {valid_moves} | Total Moves {moves_count}')
 
         # remove pipe files
         logger.debug('Closing & removing pipes')
@@ -194,11 +197,12 @@ class PooledGA(pygad.GA):
         os.remove(server_pipe_path)
 
         penalty = (0.85) if (t_client.return_code or t_server.return_code) else 1
-        reward = (retard / 20000) 
-        level = (score / 2000)
+        # reward = (retard / 20000) 
+        # level = (score / 2000)
 
-        fitness = (valid_moves / moves_count) * penalty
+        # fitness = (valid_moves / mov0es_count) * penalty
         # fitness = ((level * 34) + (reward * 33) + (good_moves_ratio * 33)) * penalty
+        fitness = score * penalty
 
         logger.debug(f'Fitness: {fitness}')
         
@@ -233,11 +237,10 @@ MAIN
 """
 if __name__ == '__main__':
 
-    gann = pygad.gann.GANN(num_solutions=200,
+    gann = pygad.gann.GANN(num_solutions=100,
                         num_neurons_input=26,
                         num_neurons_output=17,
-                        # num_neurons_hidden_layers=[26, 30, 17],
-                        num_neurons_hidden_layers=[20],
+                        num_neurons_hidden_layers=[20, 20],
                         hidden_activations="relu",
                         output_activation="softmax")
     
@@ -251,17 +254,17 @@ if __name__ == '__main__':
                         num_parents_mating=50,
                         initial_population=initial_population,
                         fitness_func=PooledGA.fitness_func,
-                        mutation_percent_genes=15,
+                        mutation_percent_genes=25,
                         # mutation_probability=0.4,
-                        init_range_low=-1,
-                        init_range_high=1,
+                        init_range_low=-5,
+                        init_range_high=5,
                         parent_selection_type='sus',
-                        crossover_type='single_point',
+                        crossover_type='uniform',
                         mutation_type='random',
                         # keep_parents=1,
                         allow_duplicate_genes=False,
                         save_best_solutions=False,
-                        stop_criteria=["reach_90"],
+                        stop_criteria=["reach_2000"],
                         gann=gann)
 
     logger.info('PooledGA created')

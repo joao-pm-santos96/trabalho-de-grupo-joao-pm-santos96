@@ -298,7 +298,7 @@ def main():
     args = vars(parser.parse_args())
 
     if args['run']: # Run mode
-        neural_net = create_network(26,17,[20,22])
+        neural_net = create_network(26,17,[20,20])
         weights = np.load(args['weights'])['arr_0']
         weights_matrix = nn.layers_weights_as_matrix(neural_net, weights)
         
