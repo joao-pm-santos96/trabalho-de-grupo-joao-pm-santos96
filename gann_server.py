@@ -190,7 +190,6 @@ class Environment:
             influence[action.fr].append( (cell[0], -action.amount) )
             influence[action.to].append( (cell[0], action.amount) )
             
-
             if cell[0] == ALLIED_SOLDIER_RANGED:
                 disabledRanged[fry][frx] += action.amount
 
