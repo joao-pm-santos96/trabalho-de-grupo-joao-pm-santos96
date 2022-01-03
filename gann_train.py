@@ -121,6 +121,26 @@ class PooledGA(pygad.GA):
             logger.info("Best fitness value reached after {best_solution_generation} generations.".format(best_solution_generation=ga_instance.best_solution_generation))
 
     @staticmethod
+    def on_fitness(ga_instance, fitness):
+        logger.debug('On fitness')
+
+    @staticmethod
+    def on_parents(ga_instance, parents):
+        logger.debug('On parents')
+
+    @staticmethod
+    def on_crossover(ga_instance, offspring):
+        logger.debug('On crossover')
+
+    @staticmethod
+    def on_mutation(ga_instance, offspring):
+        logger.debug('On mutation')
+
+    @staticmethod
+    def on_stop(ga_instance, fitness):
+        logger.debug('On stop')
+
+    @staticmethod
     def fitness_wrapper(idx, solution):
         return PooledGA.fitness_func(solution, idx)
 
@@ -189,7 +209,7 @@ class PooledGA(pygad.GA):
         os.remove(client_pipe_path)
         os.remove(server_pipe_path)
 
-        penalty = (0.1) if (t_client.return_code or t_server.return_code) else 1
+        penalty = (0.5) if (t_client.return_code or t_server.return_code) else 1
         fitness = score * penalty
 
         logger.debug(f'Fitness: {fitness}')
@@ -242,6 +262,11 @@ if __name__ == '__main__':
                         num_parents_mating=25,
                         initial_population=initial_population,
                         fitness_func=PooledGA.fitness_func,
+                        on_fitness=PooledGA.on_fitness,
+                        on_parents=PooledGA.on_parents,
+                        on_crossover=PooledGA.on_crossover,
+                        on_mutation=PooledGA.on_mutation,
+                        on_stop=PooledGA.on_stop,
                         mutation_percent_genes=5,
                         # mutation_probability=0.4,
                         init_range_low=-5,
