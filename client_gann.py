@@ -144,41 +144,25 @@ class Environment:
 
             if move is not None:
                 if move == 'upgrade':
-                    self.moves += 1
-                    
-                    if self.resources >= self.upgrade_cost:
-                        actions.append(upgradeBase())
-                        self.resources -= self.upgrade_cost
-                        self.valid_moves += 1
+                    actions.append(upgradeBase())
+                    self.resources -= self.upgrade_cost
                     
                 elif 'recruit' in move:
-                    self.moves += 1
-
                     cost = SOLDIER_MELEE_COST if 'melee' in move else SOLDIER_RANGED_COST
                     type = ALLIED_SOLDIER_MELEE if 'melee' in move else ALLIED_SOLDIER_RANGED
 
                     amount = self.resources // cost
 
-                    if amount > 0 and type in [EMPTY_CELL, self.board[1,VCENTER,0]]:
-                        actions.append(recruitSoldiers(type, amount))
-                        self.resources -= amount * cost
-                        self.valid_moves += 1
+                    actions.append(recruitSoldiers(type, amount))
+                    self.resources -= amount * cost
                     
                 else:
                     for dir in move:
-                        self.moves += 1
                         if dir is not None:
                             dest = np.add([x,y], self.motions[dir]).astype(int)
                             amount = int(self.board[x,y,1] // len(move))
 
-                            if amount > 0 \
-                                and 0 < dest[0] < WIDTH-1 \
-                                and 0 < dest[1] < HEIGHT-1:
-
-                                if self.board[dest[0], dest[1],0] in [EMPTY_CELL, self.board[x,y,0]]: 
-                                        
-                                    actions.append(moveSoldiers((x,y), dest, amount))
-                                    self.valid_moves += 1
+                            actions.append(moveSoldiers((x,y), dest, amount))
 
         playActions(actions)
 

@@ -121,9 +121,8 @@ class Environment:
         enemies = np.argwhere((soldiers == ENEMY_SOLDIER_MELEE) | (soldiers == ENEMY_SOLDIER_RANGED))
         enemies = [tuple(x) for x in enemies]
 
-        # soldiers_data = []
         for x,y in troops:
-            enemy = Environment.findEnemy((x,y), enemies)
+        #     enemy = Environment.findEnemy((x,y), enemies)
 
             data = [self.difficulty, # difficulty
                     self.resources, # resources
@@ -131,16 +130,28 @@ class Environment:
                     self.production, # current production
                     x, # soldier x
                     y, # soldier y
-                    int(enemy[0] if enemy is not None else -1), # closest enemy x
-                    int(enemy[1] if enemy is not None else -1) # closest enemy y
+                    # int(enemy[0] if enemy is not None else -1), # closest enemy x
+                    # int(enemy[1] if enemy is not None else -1) # closest enemy y
             ]
 
-            for a in [x, x+1, x-1]:
-                for b in [y, y+1, y-1]:
-                    condition = (0 < a < WIDTH-1 and 0 < b < HEIGHT-1)
+        #     for a in [x, x+1, x-1]:
+        #         for b in [y, y+1, y-1]:
+        #             condition = (0 < a < WIDTH-1 and 0 < b < HEIGHT-1)
                     
+        #             data.append(int((self.board[a,b,0] if condition else WALL) or -1)) # type in cell (substitute None by -1)
+        #             data.append(int(self.board[a,b,1] if condition else 0)) # amount in cell 
+
+            for dx in range(-3,4):
+                for dy in range(-3,4):
+                    a = x + dx
+                    b = y + dy
+                    condition = (0 < a < WIDTH-1 and 0 < b < HEIGHT-1)
+
                     data.append(int((self.board[a,b,0] if condition else WALL) or -1)) # type in cell (substitute None by -1)
                     data.append(int(self.board[a,b,1] if condition else 0)) # amount in cell 
+
+
+
 
             prediction = pygad.nn.predict(last_layer=self.neural_net, data_inputs=np.array([data]))
 

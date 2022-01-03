@@ -188,7 +188,7 @@ class PooledGA(pygad.GA):
         os.remove(client_pipe_path)
         os.remove(server_pipe_path)
 
-        penalty = (0.75) if (t_client.return_code or t_server.return_code) else 1
+        penalty = (0.1) if (t_client.return_code or t_server.return_code) else 1
         fitness = score * penalty
 
         logger.debug(f'Fitness: {fitness}')
@@ -224,10 +224,10 @@ MAIN
 """
 if __name__ == '__main__':
 
-    gann = pygad.gann.GANN(num_solutions=250,
-                        num_neurons_input=26,
+    gann = pygad.gann.GANN(num_solutions=150,
+                        num_neurons_input=104,
                         num_neurons_output=17,
-                        num_neurons_hidden_layers=[20, 20],
+                        num_neurons_hidden_layers=[75, 50],
                         hidden_activations="relu",
                         output_activation="softmax")
     
@@ -238,10 +238,10 @@ if __name__ == '__main__':
     initial_population = population_vectors.copy()
 
     trainer = PooledGA(num_generations=10000,
-                        num_parents_mating=75,
+                        num_parents_mating=25,
                         initial_population=initial_population,
                         fitness_func=PooledGA.fitness_func,
-                        mutation_percent_genes=25,
+                        mutation_percent_genes=5,
                         # mutation_probability=0.4,
                         init_range_low=-5,
                         init_range_high=5,
