@@ -65,9 +65,9 @@ class Environment:
                     'L': [-1,0],
                     'R':[1,0]}
 
-        base_moves = ['U', 'D', 'L', 'R']
-        self.outputs = base_moves
+        # base_moves = ['U', 'D', 'L', 'R']
         base_moves = [None, 'U', 'D', 'L', 'R']
+        self.outputs = base_moves
         self.outputs.extend(list(combinations(base_moves,2)))
         self.outputs.append('upgrade')
         self.outputs.append('recruit_melee')

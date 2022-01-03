@@ -224,9 +224,9 @@ MAIN
 """
 if __name__ == '__main__':
 
-    gann = pygad.gann.GANN(num_solutions=150,
+    gann = pygad.gann.GANN(num_solutions=200,
                         num_neurons_input=104,
-                        num_neurons_output=17,
+                        num_neurons_output=18,
                         num_neurons_hidden_layers=[75, 50],
                         hidden_activations="relu",
                         output_activation="softmax")
@@ -251,7 +251,7 @@ if __name__ == '__main__':
                         # keep_parents=1,
                         allow_duplicate_genes=False,
                         save_best_solutions=False,
-                        stop_criteria=["reach_100"],
+                        stop_criteria=["reach_2000"],
                         gann=gann)
 
     logger.info('PooledGA created')
