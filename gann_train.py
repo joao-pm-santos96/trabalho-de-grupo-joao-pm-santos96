@@ -109,6 +109,7 @@ class PooledGA(pygad.GA):
         self.gann.update_population_trained_weights(population_trained_weights=population_matrices)
 
         logger.info("Generation: {generation}".format(generation=ga_instance.generations_completed))
+        logger.info(f'Mean fitness: {np.mean(ga_instance.last_generation_fitness)}')
         logger.info(f'Best fitness: {np.max(ga_instance.last_generation_fitness)}')
 
         # Save current best
