@@ -240,7 +240,7 @@ def main():
     open(DEBUG_FILE, 'w').close()
     difficulty, base_cost, base_prod = map(int,input().split())
 
-    neural_net = create_network(56,17,[45])
+    neural_net = create_network(56,17,[48, 40, 32, 24])
     weights = np.load(args['weights'])['arr_0']
     weights_matrix = nn.layers_weights_as_matrix(neural_net, weights)
     

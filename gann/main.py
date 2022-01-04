@@ -145,6 +145,7 @@ class Army:
                         data.append(int(self.board[a,b,1] if condition else 0)) # amount in cell 
 
             prediction = pygad.nn.predict(last_layer=self.neural_net, data_inputs=np.array([data]))
+            print(prediction)
 
             move = self.outputs[prediction[0]]
 
@@ -716,13 +717,14 @@ def on_generation(ga_instance):
         
     gann.update_population_trained_weights(population_trained_weights=population_matrices)
 
-    logger.info("Generation: {generation}".format(generation=ga_instance.generations_completed))
-    logger.info(f'Mean fitness: {np.mean(ga_instance.last_generation_fitness)}')
-    logger.info(f'Best fitness: {np.max(ga_instance.last_generation_fitness)}')
+    # Statistics
+    best_solution, best_solution_fitness, _ = ga.best_solution()
 
-    # Save current best
-    solution, _, _ = ga.best_solution()
-    np.savez('current_best', solution)  
+    logger.info("Generation: {generation}".format(generation=ga_instance.generations_completed))
+    logger.info(f'Mean fitness: {sum(ga_instance.last_generation_fitness)/len(ga_instance.last_generation_fitness)}')
+    logger.info(f'Best fitness: {best_solution_fitness}')
+
+    np.savez('current_best', solution=best_solution)  
     logger.info('Saved current_best')      
 
     if ga_instance.best_solution_generation != -1:
@@ -753,8 +755,8 @@ def main():
                         fitness_func=fitness_func,
                         on_generation=on_generation,
                         mutation_percent_genes=5,
-                        init_range_low=-5,
-                        init_range_high=5,
+                        init_range_low=-25,
+                        init_range_high=25,
                         parent_selection_type='sus',
                         crossover_type='single_point',
                         mutation_type='random',
