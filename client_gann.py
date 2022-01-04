@@ -106,18 +106,15 @@ class Environment:
     def play(self): # agent move, call playActions only ONCE
 
         actions = []
-        print("Current production per turn is:", self.production)
-        print("Current building cost is:", self.upgrade_cost)
-
+        
         soldiers = self.board[:,:,0]
         troops = np.argwhere((soldiers==ALLIED_SOLDIER_RANGED) | (soldiers==ALLIED_SOLDIER_MELEE) | (soldiers==ALLIED_MAIN_BUILDING))
 
-        enemies = np.argwhere((soldiers == ENEMY_SOLDIER_MELEE) | (soldiers == ENEMY_SOLDIER_RANGED))
-        enemies = [tuple(x) for x in enemies]
+        # enemies = np.argwhere((soldiers == ENEMY_SOLDIER_MELEE) | (soldiers == ENEMY_SOLDIER_RANGED))
+        # enemies = [tuple(x) for x in enemies]
 
-        # soldiers_data = []
         for x,y in troops:
-            enemy = Environment.findEnemy((x,y), enemies)
+        #     enemy = Environment.findEnemy((x,y), enemies)
 
             data = [self.difficulty, # difficulty
                     self.resources, # resources
@@ -125,18 +122,17 @@ class Environment:
                     self.production, # current production
                     x, # soldier x
                     y, # soldier y
-                    int(enemy[0] if enemy is not None else -1), # closest enemy x
-                    int(enemy[1] if enemy is not None else -1) # closest enemy y
             ]
 
-            for a in [x, x+1, x-1]:
-                for b in [y, y+1, y-1]:
-                    condition = (0 < a < WIDTH-1 and 0 < b < HEIGHT-1)
-                    
-                    data.append(int((self.board[a,b,0] if condition else WALL) or -1)) # type in cell (substitute None by -1)
-                    data.append(int(self.board[a,b,1] if condition else 0)) # amount in cell 
+            for dx in range(-3,4):
+                for dy in range(-3,4):
+                    if abs(dx) + abs(dy) < 4:
+                        a = x + dx
+                        b = y + dy
+                        condition = (0 < a < WIDTH-1 and 0 < b < HEIGHT-1)
 
-            # soldiers_data.append(data)
+                        data.append(int((self.board[a,b,0] if condition else WALL) or -1)) # type in cell (substitute None by -1)
+                        data.append(int(self.board[a,b,1] if condition else 0)) # amount in cell 
 
             prediction = pygad.nn.predict(last_layer=self.neural_net, data_inputs=np.array([data]))
 
@@ -163,7 +159,7 @@ class Environment:
                             amount = int(self.board[x,y,1] // len(move))
 
                             actions.append(moveSoldiers((x,y), dest, amount))
-
+     
         playActions(actions)
 
     """
@@ -244,7 +240,7 @@ def main():
     open(DEBUG_FILE, 'w').close()
     difficulty, base_cost, base_prod = map(int,input().split())
 
-    neural_net = create_network(26,17,[20,20])
+    neural_net = create_network(56,17,[45])
     weights = np.load(args['weights'])['arr_0']
     weights_matrix = nn.layers_weights_as_matrix(neural_net, weights)
     

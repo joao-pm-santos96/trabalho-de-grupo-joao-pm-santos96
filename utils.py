@@ -22,7 +22,7 @@ SOLDIER_RANGED_COST = SOLDIERS_COST[ALLIED_SOLDIER_RANGED]
 
 # constants
 MAX_ACTIONS = 500
-MAX_PROCESS_TIME = 500 # milliseconds
+MAX_PROCESS_TIME = 200 # milliseconds
 MAX_T = 2000 # maximun turns
 
 # depends on the difficulty
