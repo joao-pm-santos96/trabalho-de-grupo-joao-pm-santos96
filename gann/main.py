@@ -769,7 +769,7 @@ def fitness_func(solution, index):
     server_t.join(timeout=tout)
     army_t.join(timeout=tout)
 
-    if (server_t.exitcode is not None) and (army_t.exitcode is not None):
+    if (server_t.exitcode is not None) and (army_t.exitcode is not None) and not server_out.empty() and not server_in.empty():
 
         server_return = server_out.get()
         army_return = server_in.get()
