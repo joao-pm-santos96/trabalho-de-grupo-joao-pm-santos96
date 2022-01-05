@@ -140,6 +140,10 @@ class DecisionTree:
         return root
 
     @staticmethod
+    def buildMeleeTree():
+        pass
+
+    @staticmethod
     def buildBaseTree():
 
         no_action = LeafNode(None)
@@ -210,7 +214,6 @@ class Environment:
         print("Current building cost is:", self.upgrade_cost)
 
         # SOLDIERS DECISION MAKING
-
         soldiers = self.board[:,:,0]
 
         troops = np.argwhere((soldiers==ALLIED_SOLDIER_RANGED) | (soldiers==ALLIED_SOLDIER_MELEE))
