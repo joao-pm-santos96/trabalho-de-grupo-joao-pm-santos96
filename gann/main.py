@@ -669,7 +669,7 @@ def moveSoldiers(pos, to, amount):
 #     _PRINT(';'.join(map(str,actions)), flush=True)
 
 def fitness_func(solution, index):
-    global gann
+    global gann, difficulty
 
     tout = 60 #sec
     fitness = -1
@@ -677,7 +677,6 @@ def fitness_func(solution, index):
     server_out = Queue()
     nn = gann.population_networks[index]
     
-    difficulty = 1
     eval = True
 
     viewer = None if eval else Viewer()
@@ -810,7 +809,9 @@ def on_stop(ga_instance, last_population_fitness):
 
 def main():
 
-    global ga, gann
+    global ga, gann, difficulty
+
+    difficulty = 1
 
     gann = pygad.gann.GANN(num_solutions=100,
                         num_neurons_input=56,
@@ -864,7 +865,7 @@ def main():
 
     ga.save(filename=f'outputs/genetic_{name_append}')
 
-    filename = f'outputs/results_{name_append}' 
+    filename = f'outputs/dif{difficulty}_{name_append}' 
     np.savetxt(filename + '.txt', solution, delimiter=',')
     np.savez(filename, solution)
 
@@ -875,6 +876,7 @@ MAIN
 """
 ga = None
 gann = None
+difficulty = None
 
 if __name__ == '__main__':
     main()
