@@ -191,7 +191,8 @@ class Environment:
             # breath strategy
             open_nodes.extend(new_nodes)
 
-        return None        
+        return None   
+             
 def create_network(num_neurons_input, 
                    num_neurons_output, 
                    num_neurons_hidden_layers=[], 
@@ -241,7 +242,7 @@ def main():
     difficulty, base_cost, base_prod = map(int,input().split())
 
     neural_net = create_network(56,17,[48, 40, 32, 24])
-    weights = np.load(args['weights'])['arr_0']
+    weights = np.load(args['weights'])['solution']
     weights_matrix = nn.layers_weights_as_matrix(neural_net, weights)
     
     nn.update_layers_trained_weights(last_layer=neural_net,
