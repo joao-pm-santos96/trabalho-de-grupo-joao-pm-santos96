@@ -726,7 +726,26 @@ def on_generation(ga_instance):
     if ga_instance.best_solution_generation != -1:
         logger.info("Best fitness value reached after {best_solution_generation} generations.".format(best_solution_generation=ga_instance.best_solution_generation))
 
+def on_start(ga_instance):
+    logger.debug("on_start()")
+
+def on_fitness(ga_instance, population_fitness):
+    logger.debug("on_fitness()")
+
+def on_parents(ga_instance, selected_parents):
+    logger.debug("on_parents()")
+
+def on_crossover(ga_instance, offspring_crossover):
+    logger.debug("on_crossover()")
+
+def on_mutation(ga_instance, offspring_mutation):
+    logger.debug("on_mutation()")
+
+def on_stop(ga_instance, last_population_fitness):
+    logger.debug("on_stop")
+
 def main():
+
     global ga, gann
 
     gann = pygad.gann.GANN(num_solutions=100,
@@ -750,6 +769,12 @@ def main():
                         initial_population=initial_population,
                         fitness_func=fitness_func,
                         on_generation=on_generation,
+                        on_start=on_start,
+                        on_fitness=on_fitness,
+                        on_parents=on_parents,
+                        on_crossover=on_crossover,
+                        on_mutation=on_mutation,
+                        on_stop=on_stop,
                         mutation_percent_genes=5,
                         init_range_low=-25,
                         init_range_high=25,
