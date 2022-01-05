@@ -83,6 +83,8 @@ class Army:
         self.neural_net = neural_net
         self.in_q = in_q
         self.out_q = out_q
+        self.move_count = 0
+        self.ok_moves = 0
 
         self.motions={'U': [0,-1], 
                     'D': [0,1],
@@ -211,9 +213,11 @@ class Army:
             if move is not None:
                 if move == 'upgrade':
                     action = upgradeBase()
+                    self.move_count += 1
                     if self.validateAction(action):
                         actions.append(action)
                         self.resources -= self.upgrade_cost
+                        self.ok_moves += 1
                     
                 elif 'recruit' in move:
                     cost = SOLDIER_MELEE_COST if 'melee' in move else SOLDIER_RANGED_COST
@@ -222,9 +226,11 @@ class Army:
                     amount = self.resources // cost
 
                     action = recruitSoldiers(type, amount)
+                    self.move_count += 1
                     if self.validateAction(action):
                         actions.append(action)
                         self.resources -= amount * cost
+                        self.ok_moves += 1
                     
                 else:
                     for dir in move:
@@ -233,8 +239,10 @@ class Army:
                             amount = int(self.board[x,y,1] // len(move))
 
                             action = moveSoldiers((x,y), dest, amount)
+                            self.move_count += 1
                             if self.validateAction(action):
                                 actions.append(action)
+                                self.ok_moves += 1
         
         self.playActions(actions)
 
@@ -254,13 +262,16 @@ class Army:
             if signal=="END":
                 # debug("GAME OVER")
                 logger.debug('GAME OVER')
+                self.out_q.put(self.ok_moves/self.move_count)
                 sys.exit(0)
             elif signal=="ERROR":
                 # debug("ERROR")
                 logger.debug('ERROR')
+                self.out_q.put(self.ok_moves/self.move_count)
                 sys.exit(1)
             
             self.play()
+
 
 
 class Server:
@@ -761,9 +772,10 @@ def fitness_func(solution, index):
     if (server_t.exitcode is not None) and (army_t.exitcode is not None):
 
         server_return = server_out.get()
+        army_return = server_in.get()
 
         penalty = (0.5) if (server_t.exitcode or army_t.exitcode) else 1
-        fitness = server_return['score'] * penalty
+        fitness = server_return['score'] * penalty * army_return
 
     else:
         logger.critical(f'Timeout. Exit codes: Server {server_t.exitcode} | Client {army_t.exitcode}')
@@ -905,7 +917,7 @@ def main():
                         on_crossover=on_crossover,
                         on_mutation=on_mutation,
                         on_stop=on_stop,
-                        mutation_percent_genes=5,
+                        mutation_percent_genes=15,
                         init_range_low=-25,
                         init_range_high=25,
                         parent_selection_type='sus',

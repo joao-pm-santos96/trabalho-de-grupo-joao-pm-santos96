@@ -140,8 +140,10 @@ class Environment:
 
             if move is not None:
                 if move == 'upgrade':
-                    actions.append(upgradeBase())
-                    self.resources -= self.upgrade_cost
+                    action = upgradeBase()
+                    if self.validateAction(action):
+                        actions.append(action)
+                        self.resources -= self.upgrade_cost
                     
                 elif 'recruit' in move:
                     cost = SOLDIER_MELEE_COST if 'melee' in move else SOLDIER_RANGED_COST
@@ -149,8 +151,10 @@ class Environment:
 
                     amount = self.resources // cost
 
-                    actions.append(recruitSoldiers(type, amount))
-                    self.resources -= amount * cost
+                    action = recruitSoldiers(type, amount)
+                    if self.validateAction(action):
+                        actions.append(action)
+                        self.resources -= amount * cost
                     
                 else:
                     for dir in move:
@@ -158,13 +162,64 @@ class Environment:
                             dest = np.add([x,y], self.motions[dir]).astype(int)
                             amount = int(self.board[x,y,1] // len(move))
 
-                            actions.append(moveSoldiers((x,y), dest, amount))
-     
+                            action = moveSoldiers((x,y), dest, amount)
+                            if self.validateAction(action):
+                                actions.append(action)
+        
         playActions(actions)
 
     """
     JS METHODS
     """
+    def validateAction(self, action):
+
+        action_id, *rest = action.split('|')
+        rest = [int(x) for x in rest]
+
+        if action_id == '0': # Upgrade
+            if self.resources < self.upgrade_cost:
+                return False
+
+        elif action_id == '1': # Recruit
+
+            soldier_type = rest[0]
+            amount = rest[1]
+            location = rest[2:]
+
+            if location not in [[1, VCENTER], [0, VCENTER-1], [0, VCENTER+1]]:
+                return False
+
+            if soldier_type not in [ALLIED_SOLDIER_MELEE, ALLIED_SOLDIER_RANGED]:
+                return False
+
+            if self.resources < amount * (SOLDIER_MELEE_COST if soldier_type == ALLIED_SOLDIER_MELEE else SOLDIER_RANGED_COST):
+                return False
+
+            if self.board[location[0], location[1], 0] != soldier_type:
+                return False
+
+        elif action_id == '2': # Move
+
+            pos = rest[0:2]
+            dest = rest[2:4]
+            amount = rest[4]
+            
+            soldier_type = self.board[pos[0], pos[1], 0]
+
+            if not (0 <= dest[0] < WIDTH) or not (0 <= dest[1] < HEIGHT):
+                return False
+
+            if soldier_type in [ALLIED_MAIN_BUILDING, ENEMY_SOLDIER_MELEE, ENEMY_SOLDIER_RANGED]:
+                return False
+
+            if amount < 1 or amount > self.board[pos[0], pos[1], 1]:
+                return False
+
+            if soldier_type != self.board[dest[0], dest[1], 0]:
+                return False
+
+        return True
+        
     @staticmethod
     def findEnemy(pos, enemies, distance = 3):
 
