@@ -9,7 +9,7 @@ IMPORTS
 
 from datetime import datetime
 import os
-from multiprocessing import Process, Queue
+from multiprocessing import Pool, Process, Queue
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 import random
 import time
@@ -726,6 +726,70 @@ def on_generation(ga_instance):
     if ga_instance.best_solution_generation != -1:
         logger.info("Best fitness value reached after {best_solution_generation} generations.".format(best_solution_generation=ga_instance.best_solution_generation))
 
+def mutation_randomly(offspring, ga):
+    
+    """
+    Applies the random mutation the mutation probability. For each gene, if its probability is <= that mutation probability, then it will be mutated randomly.
+    It accepts a single parameter:
+        -offspring: The offspring to mutate.
+    It returns an array of the mutated offspring.
+    """
+
+    # Random mutation changes one or more genes in each offspring randomly.
+    # for offspring_idx in range(offspring.shape[0]):
+    mutation_indices = np.array(random.sample(range(0, ga.num_genes), ga.mutation_num_genes))
+    for gene_idx in mutation_indices:
+        # Generating a random value.
+        random_value = np.random.uniform(low=ga.random_mutation_min_val, 
+                                            high=ga.random_mutation_max_val, 
+                                            size=1)
+        # If the mutation_by_replacement attribute is True, then the random value replaces the current gene value.
+        if ga.mutation_by_replacement:
+            if ga.gene_type_single == True:
+                random_value = ga.gene_type[0](random_value)
+            else:
+                random_value = ga.gene_type[gene_idx][0](random_value)
+                if type(random_value) is np.ndarray:
+                    random_value = random_value[0]
+        # If the mutation_by_replacement attribute is False, then the random value is added to the gene value.
+        else:
+            if ga.gene_type_single == True:
+                random_value = ga.gene_type[0](offspring[gene_idx] + random_value)
+            else:
+                random_value = ga.gene_type[gene_idx][0](offspring[gene_idx] + random_value)
+                if type(random_value) is np.ndarray:
+                    random_value = random_value[0]
+
+        # Round the gene
+        if ga.gene_type_single == True:
+            if not ga.gene_type[1] is None:
+                random_value = np.round(random_value, ga.gene_type[1])
+        else:
+            if not ga.gene_type[gene_idx][1] is None:
+                random_value = np.round(random_value, ga.gene_type[gene_idx][1])
+
+        offspring[gene_idx] = random_value
+
+        if ga.allow_duplicate_genes == False:
+            offspring, _, _ = ga.solve_duplicate_genes_randomly(solution=offspring,
+                                                min_val=ga.random_mutation_min_val,
+                                                max_val=ga.random_mutation_max_val,
+                                                mutation_by_replacement=ga.mutation_by_replacement,
+                                                gene_type=ga.gene_type,
+                                                num_trials=10)
+
+    return offspring
+
+
+
+def pooledMutation(offspring, ga_instance):
+
+    with Pool() as pool:
+        cenas = pool.starmap(mutation_randomly, [(x, ga_instance) for x in offspring])
+
+    return np.array(cenas)
+
+
 def on_start(ga_instance):
     logger.debug("on_start()")
 
@@ -781,7 +845,8 @@ def main():
                         parent_selection_type='sus',
                         crossover_type='single_point',
                         mutation_type='random',
-                        allow_duplicate_genes=False,
+                        # mutation_type=pooledMutation,
+                        allow_duplicate_genes=True,
                         save_best_solutions=False,
                         stop_criteria=["reach_500"])
 
