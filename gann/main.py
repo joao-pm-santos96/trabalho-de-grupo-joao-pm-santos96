@@ -145,7 +145,6 @@ class Army:
                         data.append(int(self.board[a,b,1] if condition else 0)) # amount in cell 
 
             prediction = pygad.nn.predict(last_layer=self.neural_net, data_inputs=np.array([data]))
-            print(prediction)
 
             move = self.outputs[prediction[0]]
 
@@ -183,26 +182,20 @@ class Army:
         # difficulty, base_cost, base_prod = map(int,input().split())
 
         # env = Environment(difficulty, base_cost, base_prod, neural_net=neural_net)
-        return_code = 0
         while 1:
             signal = self.readEnvironment()
 
             if signal=="END":
                 # debug("GAME OVER")
                 logger.debug('GAME OVER')
-                return_code = 0
-                break
-                # sys.exit(0)
+                sys.exit(0)
             elif signal=="ERROR":
                 # debug("ERROR")
                 logger.debug('ERROR')
-                return_code = 1
-                break
-                # sys.exit(1)
+                sys.exit(1)
             
             self.play()
 
-        self.out_q.put({'return_code': return_code})
 
 class Server:
     def __init__(self, difficulty, viewer, in_q = None, out_q = None):
@@ -628,7 +621,6 @@ class Server:
         # Output(f"{self.difficulty} {self.base_cost} {self.base_prod}")
         ok = self.in_q.get()
         score = 0
-        return_code = 0
         while 1:
             self.outputState()
             error = self.readAndApplyTurnEvents()
@@ -640,16 +632,14 @@ class Server:
                 # debug("END!")
                 self.output("END")
                 logger.debug('END')
-                return_code = 0
                 break
             elif error:
                 # debug("ERROR:",error)
                 self.output("ERROR")
                 logger.debug(f'ERROR: {error}')
-                return_code = 1
                 break
        
-        self.out_q.put({'score': score, 'retard': self.retard, 'return_code': return_code})
+        self.out_q.put({'score': score, 'retard': self.retard})
 
 """
 FUNCTIONS DEFINITIONS
@@ -681,6 +671,8 @@ def moveSoldiers(pos, to, amount):
 def fitness_func(solution, index):
     global gann
 
+    tout = 60 #sec
+    fitness = -1
     server_in = Queue()
     server_out = Queue()
     nn = gann.population_networks[index]
@@ -699,14 +691,18 @@ def fitness_func(solution, index):
     server_t.start()
     army_t.start()
 
-    server_t.join()
-    army_t.join()
+    server_t.join(timeout=tout)
+    army_t.join(timeout=tout)
 
-    server_return = server_out.get()
-    army_return = server_in.get()
+    if (server_t.exitcode is not None) and (army_t.exitcode is not None):
 
-    penalty = (0.5) if (server_return['return_code'] or army_return['return_code']) else 1
-    fitness = server_return['score'] * penalty
+        server_return = server_out.get()
+
+        penalty = (0.5) if (server_t.exitcode or army_t.exitcode) else 1
+        fitness = server_return['score'] * penalty
+
+    else:
+        logger.critical(f'Timeout. Exit codes: Server {server_t.exitcode} | Client {army_t.exitcode}')
 
     return fitness
 
