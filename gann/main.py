@@ -771,11 +771,14 @@ def fitness_func(solution, index):
 
     if (server_t.exitcode is not None) and (army_t.exitcode is not None) and not server_out.empty() and not server_in.empty():
 
-        server_return = server_out.get()
-        army_return = server_in.get()
+        try:
+            server_return = server_out.get(timeout=5)
+            army_return = server_in.get(timeout=5)
 
-        penalty = (0.5) if (server_t.exitcode or army_t.exitcode) else 1
-        fitness = server_return['score'] * penalty * army_return
+            penalty = (0.5) if (server_t.exitcode or army_t.exitcode) else 1
+            fitness = server_return['score'] * penalty * army_return
+        except:
+            fitness = -1
 
     else:
         logger.critical(f'Timeout. Exit codes: Server {server_t.exitcode} | Client {army_t.exitcode}')
