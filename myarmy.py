@@ -1,171 +1,40 @@
-#!/usr/bin/env python3
-"""
-***DESCRIPTION***
-"""
-
-"""
-IMPORTS
-"""
 import sys
-import json
-import numpy as np
-import itertools
 
-from numpy.core.numeric import moveaxis
+
 from actions import *
 from utils import *
 from utils import _PRINT
 
+import json
+import numpy as np
+
+
 DEBUG_FILE = "client_debug.txt"
-"""
-METADATA
-"""
-__author__ = 'Joao Santos'
-__copyright__ = 'Copyright December2021'
-__credits__ = ['Joao Santos']
-__version__ = '1.0.0'
-__maintainer__ = 'Joao Santos'
-__email__ = 'joao.pm.santos96@gmail.com'
-__status__ = 'Production'
-# __license__ = 'GPL'
 
-"""
-TODO
-"""
+def debug(*args):
+    _PRINT(*args, file=sys.stderr, flush=True)
+    with open(DEBUG_FILE, 'a') as f:
+        stdout, sys.stdout = sys.stdout, f # Save a reference to the original standard output
+        _PRINT(*args)
+        sys.stdout = stdout
 
-"""
-CLASS DEFINITIONS
-"""
-class Question:
+print = debug # dont erase this line, otherwise you cannot use the print function for debug 
 
-    def __init__(self, field, optional=None):
-        self.field = field
-        self.optional = optional
+def upgradeBase():
+    return f"{UPGRADE_BUILDING}"
 
-    def check(self, data):
-        if self.optional is not None:
-            return self.question(data[self.field], self.optional)
-        else:
-            return self.question(data[self.field])
+def recruitSoldiers(type, amount, location=(1,VCENTER)):
+    return f"{RECRUIT_SOLDIERS}|{type}|{amount}|{location[0]}|{location[1]}".replace(" ","")
 
-class RangedQuestion(Question):
+def moveSoldiers(pos, to, amount):
+    return f"{MOVE_SOLDIERS}|{pos[0]}|{pos[1]}|{to[0]}|{to[1]}|{amount}".replace(" ","")
 
-    def __init__(self, field, optional=None):
-        super().__init__(field, optional=optional)
+def playActions(actions):
+    _PRINT(';'.join(map(str,actions)), flush=True)
 
-        if field == 'amount':
-            self.question = lambda amount, value : amount > value
 
-        elif field in ['up', 'down', 'left', 'right']:
-            self.question = lambda soldier : soldier in [EMPTY_CELL, ALLIED_SOLDIER_RANGED]
 
-        elif field == 'pos_x':
-            self.question = lambda x : x < 10 # TODO 10 elsewhere
-
-        elif field == 'pos_y':
-            self.question = lambda y : y % 2 == 0
-
-        elif field == 'enemy_d':
-            self.question = lambda dist : dist <= 3 if dist is not None else False
-
-class BaseQuestion(Question):
-
-    def __init__(self, field, optional=None):
-        super().__init__(field, optional=optional)
-        
-        if field == 'enemy_d':
-            self.question = lambda dist, limit : dist < limit if dist is not None else False
-
-        elif field == 'resources':
-            self.question = lambda resources, cost : resources >= cost
-
-        elif field == 'upgrade':
-            self.question = lambda can_upgrade : bool(can_upgrade)
-
-        elif field in ['up', 'down', 'left', 'right']:
-            self.question = lambda soldier : soldier in [EMPTY_CELL] # TODO check also allied type
-
-class LeafNode:
-
-    def __init__(self, outcome):
-        self.outcome = outcome
-
-class DecisionTree:
-
-    def __init__(self):
-        pass
-
-    @staticmethod
-    def selectMove(data, node):
-
-        if isinstance(node, LeafNode):
-            return node.outcome
-
-        if node.question.check(data):
-            return DecisionTree.selectMove(data, node.true_branch)
-        else:
-            return DecisionTree.selectMove(data, node.false_branch)
-
-    @staticmethod
-    def buildRangedTree():
-
-        # TODO different behaviors if close or further from base
-        soldiers_up_down = np.array([(0,-1),(0,1)])
-        soldiers_up = np.array([(0,-1)])
-        soldiers_down = np.array([(0,1)])
-        soldiers_back = np.array([(-1,0)])
-        soldiers_forward = np.array([(1,0)])
-        soldiers_nowhere = np.array([()])
-
-        leaf_nothing = LeafNode(soldiers_nowhere)
-
-        split_vert = DecisionNode(RangedQuestion('down'), LeafNode(soldiers_up_down), LeafNode(soldiers_up))
-        move_back = DecisionNode(RangedQuestion('left'), LeafNode(soldiers_back), leaf_nothing)
-        can_split = DecisionNode(RangedQuestion('amount', 1), split_vert, LeafNode(soldiers_up)) # Prioritize up
-
-        move_down = DecisionNode(RangedQuestion('down'), LeafNode(soldiers_down), leaf_nothing)
-        split_formattion = DecisionNode(RangedQuestion('up'), can_split, move_down)
-
-        move_forward = DecisionNode(RangedQuestion('right'), LeafNode(soldiers_forward), leaf_nothing)
-
-        move_formattion = DecisionNode(RangedQuestion('pos_x'), move_forward,leaf_nothing)
-
-        formattion = DecisionNode(RangedQuestion('pos_y'), split_formattion, move_formattion)
-
-        split_amount = DecisionNode(RangedQuestion('up'), can_split, move_back)
-        move = DecisionNode(RangedQuestion('enemy_d'), leaf_nothing, formattion)
-
-        root = DecisionNode(RangedQuestion('amount', 50), split_amount, move)
-
-        return root
-
-    @staticmethod
-    def buildMeleeTree():
-        pass
-
-    @staticmethod
-    def buildBaseTree():
-
-        no_action = LeafNode(None)
-        
-        recruit = LeafNode([ALLIED_SOLDIER_MELEE] * 3)
-
-        in_emergency = DecisionNode(BaseQuestion('enemy_d', 5), LeafNode(None), LeafNode(None))
-        
-        can_buy = DecisionNode(BaseQuestion('resources', min([SOLDIER_MELEE_COST, SOLDIER_RANGED_COST])), in_emergency, no_action)
-        upgrade = DecisionNode(BaseQuestion('upgrade'), LeafNode(upgradeBase), no_action)
-
-        root = DecisionNode(BaseQuestion('enemy_d', 15), can_buy, upgrade)
-
-        return root
-
-class DecisionNode:
-
-    def __init__(self, question, true_branch, false_branch):
-        self.question = question # Question the node makes
-        self.true_branch = true_branch # Node if question is true
-        self.false_branch = false_branch # Node if question is false
-
+# ENVIRONMENT
 class Environment:
     def __init__(self, difficulty, base_cost, base_prod):
         self.difficulty = difficulty
@@ -174,28 +43,29 @@ class Environment:
         self.base_cost = base_cost
         self.base_prod = base_prod
         self.board = [[None]*WIDTH for h in range(HEIGHT)]
-
+        
         """
         JS STUFF
         """
-        self.ranged_root = DecisionTree.buildRangedTree()
-        self.base_root = DecisionTree.buildBaseTree()
-        self.soldier_data = {}
-        self.base_data = {}
-
+        self.turn = 0
+        self.initial_cols = [4,5]
+        
+        
         playActions([])
 
     @property
     def upgrade_cost(self):
         return int(self.base_cost*(1.4**self.building_level))
 
+
     @property
     def production(self):
         return int(self.base_prod*(1.2**self.building_level))
 
+
     def readEnvironment(self):
         state = input()
-
+        
         if state in ["END", "ERROR"]:
             return state
         level, resources, board = state.split()
@@ -204,8 +74,15 @@ class Environment:
         debug(f"Building Level: {level}, Current resources: {resources}")
         self.building_level = level
         self.resources = resources
+        # self.board = json.loads(board)
 
+        # uncomment next lines to use numpy array instead of array of array of array (3D array)
+        # IT IS RECOMMENDED for simplicity
+        # arrays to numpy converstion:  self.board[y][x][idx] => self.board[x,y,idx] 
+        #
         self.board = np.swapaxes(np.array(json.loads(board)),0,1)
+        #debug(self.board.shape)
+        
 
     def play(self): # agent move, call playActions only ONCE
 
@@ -213,65 +90,134 @@ class Environment:
         print("Current production per turn is:", self.production)
         print("Current building cost is:", self.upgrade_cost)
 
-        # SOLDIERS DECISION MAKING
         soldiers = self.board[:,:,0]
-
-        troops = np.argwhere((soldiers==ALLIED_SOLDIER_RANGED) | (soldiers==ALLIED_SOLDIER_MELEE))
         enemies = np.argwhere((soldiers == ENEMY_SOLDIER_MELEE) | (soldiers == ENEMY_SOLDIER_RANGED))
         enemies = [tuple(x) for x in enemies]
 
-        for x,y in troops:
+        for x in range(WIDTH):
+            for y in range(HEIGHT):
 
-            soldier = self.board[x,y,0]
+                soldier_type = self.board[x,y,0]
+                soldier_amount = self.board[x,y,1]
 
-            enemy_pos = Environment.findEnemy((x,y), enemies)
-            dist = sum([abs(x-enemy_pos[0]), abs(y-enemy_pos[1])]) if enemy_pos is not None else None
-            
-            self.soldier_data['amount'] = self.board[x,y,1]
-            self.soldier_data['resources'] = self.resources
-            self.soldier_data['up'] = self.board[x,y-1,0] if y > 0 else WALL
-            self.soldier_data['down'] = self.board[x,y+1,0] if y < HEIGHT-1 else WALL
-            self.soldier_data['right'] = self.board[x+1,y,0] if x < WIDTH-1 else WALL
-            self.soldier_data['left'] = self.board[x-1,y,0] if x > 0 else WALL
-            self.soldier_data['pos_x'] = x
-            self.soldier_data['pos_y'] = y
-            self.soldier_data['enemy_d'] = dist
+                if soldier_type == ALLIED_MAIN_BUILDING:
+                    
+                    # recruit ranged
+                    amount = 20 if self.board[0,VCENTER,1] < 5 else 40
+                    if self.board[0,VCENTER-1,0] in [EMPTY_CELL, ALLIED_SOLDIER_RANGED] \
+                        and self.board[0,VCENTER+1,0] in [EMPTY_CELL, ALLIED_SOLDIER_RANGED] \
+                        and self.resources >= amount * SOLDIER_RANGED_COST:
 
-            moves = []
-            if soldier == ALLIED_SOLDIER_RANGED:
-                moves = DecisionTree.selectMove(self.soldier_data, self.ranged_root)
+                        actions.append(recruitSoldiers(ALLIED_SOLDIER_RANGED, amount//2, (0,VCENTER-1)))
+                        actions.append(recruitSoldiers(ALLIED_SOLDIER_RANGED, amount//2, (0,VCENTER+1)))
+                        self.resources -= amount * SOLDIER_RANGED_COST
 
-            elif soldier == ALLIED_SOLDIER_MELEE:
-                pass
+                    amount = 20
+                    if self.board[1,VCENTER,0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE] \
+                        and self.resources >= amount * SOLDIER_RANGED_COST \
+                        and amount > 0:
 
-            for move in moves:
-                if len(move) == 2:
-                    action = moveSoldiers((x,y), np.add((x,y), move), self.board[x,y,1]//len(moves))
-                    actions.append(action)
+                        actions.append(recruitSoldiers(ALLIED_SOLDIER_MELEE, amount))
+                        self.resources -= amount * SOLDIER_MELEE_COST
 
-        # BASE DECISION MAKING
-        self.base_data['resources'] = self.resources
-        self.base_data['upgrade'] = (self.resources >= self.upgrade_cost)
-        self.base_data['up'] = self.board[0,VCENTER-1,0] if y > 0 else WALL
-        self.base_data['down'] = self.board[0,VCENTER+1,0] if y < HEIGHT-1 else WALL
-        self.base_data['right'] = self.board[1,VCENTER,0] if x < WIDTH-1 else WALL
-        self.base_data['enemy_d'] = min([pos[0] for pos in enemies]) if len(enemies) > 0 else None
+                    if self.resources >= self.upgrade_cost:
+                        actions.append(upgradeBase())
+                        self.resources -= self.upgrade_cost
 
-        decision = DecisionTree.selectMove(self.base_data, self.base_root)
+                elif soldier_type == ALLIED_SOLDIER_MELEE:
+                    
+                    closest_enemy = Environment.findEnemy((x,y),enemies)
+                    if soldier_amount <= 25: # if still invisible, go for the retard
+                    # if closest_enemy is None:
+                        
+                        # try to go forward
+                        if self.board[x+1,y,0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE]:
+                            actions.append(moveSoldiers((x,y), (x+1,y), soldier_amount))
 
-        if callable(decision):
-            actions.append(decision())
+                        elif (y + 1) < HEIGHT - 1: # try to go down
+                            if self.board[x,y+1,0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE] \
+                                and self.board[x+1,y+1,0] not in [ENEMY_SOLDIER_MELEE, ENEMY_SOLDIER_RANGED] \
+                                and self.board[x-1,y+1,0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE]: 
+
+                                actions.append(moveSoldiers((x,y), (x,y+1), soldier_amount))
+
+                        elif (y - 1) > 0: # try to go up
+                            if self.board[x,y-1,0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE] \
+                                and self.board[x+1,y-1,0] not in [ENEMY_SOLDIER_MELEE, ENEMY_SOLDIER_RANGED] \
+                                and self.board[x-1,y-1,0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE]:
+
+                                actions.append(moveSoldiers((x,y), (x,y-1), soldier_amount))
+
+                    elif closest_enemy is not None: 
+                        delta = [closest_enemy[0]-x,closest_enemy[1]-y]
+
+                        direction = np.argmax(np.abs(delta))
+                        towards = np.sign(delta[direction])
+
+
+                        go_to = [0]*2
+                        go_to[direction] = towards
+
+                        print((x,y))
+                        print(delta)
+                        print(direction)
+                        print(towards)
+                        print(go_to)
+
+                        dest = np.add((x,y), go_to).astype(int)
+
+                        if self.board[dest[0], dest[1],0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE]:
+                            actions.append(moveSoldiers((x,y),dest,soldier_amount))
+
+
+                elif soldier_type == ALLIED_SOLDIER_RANGED:
+
+                    if Environment.findEnemy((x,y), enemies) is None: # enemy not in range
+
+                        if y in [3, 7, 5] and x < 15:
+
+                            if self.board[x+1,y,0] == EMPTY_CELL:
+                                actions.append(moveSoldiers((x,y),(x+1,y),soldier_amount))
+
+                            elif self.board[x+1,y,0] == ALLIED_SOLDIER_RANGED and self.board[x+1,y,1] < 50:
+                                cenas = min([self.board[x,y,1], 50-self.board[x+1,y,1]])
+                                actions.append(moveSoldiers((x,y),(x+1,y),cenas))
+
+                        elif y not in [3, 7] and x > 2:
+
+                            if y in [0,1,2,6] and self.board[x,y+1,0] in [EMPTY_CELL, ALLIED_SOLDIER_RANGED]: # move towards 3
+                                actions.append(moveSoldiers((x,y), (x,y+1), soldier_amount))
+
+                            elif y in [10,9,8,4] and self.board[x,y-1,0] in [EMPTY_CELL, ALLIED_SOLDIER_RANGED]: # move towards 7
+                                actions.append(moveSoldiers((x,y), (x,y-1), soldier_amount))
+
+                            elif y == 5 and self.board[x,y+1,0] in [EMPTY_CELL, ALLIED_SOLDIER_RANGED] and soldier_amount > 1:
+                                actions.append(moveSoldiers((x,y), (x,y+1), soldier_amount//2))
+
+                            elif y == 5 and self.board[x,y-1,0] in [EMPTY_CELL, ALLIED_SOLDIER_RANGED] and soldier_amount > 1:
+                                actions.append(moveSoldiers((x,y), (x,y-1), soldier_amount - soldier_amount//2))
+
+                        elif x <= 2:
+
+                            if self.board[x+1,y,0] in [EMPTY_CELL, ALLIED_SOLDIER_RANGED]:
+                                actions.append(moveSoldiers((x,y),(x+1,y),soldier_amount))
+
+
+
+
+
+
+
+                            
+
+
+
         
 
         
-                
-        
-
+        self.turn += 1  
         playActions(actions)
 
-    """
-    JS METHODS
-    """
     @staticmethod
     def findEnemy(pos, enemies, distance = 3):
 
@@ -299,36 +245,13 @@ class Environment:
             open_nodes.extend(new_nodes)
 
         return None
-
-"""
-FUNCTIONS DEFINITIONS
-"""
-def debug(*args):
-    _PRINT(*args, file=sys.stderr, flush=True)
-    with open(DEBUG_FILE, 'a') as f:
-        stdout, sys.stdout = sys.stdout, f # Save a reference to the original standard output
-        _PRINT(*args)
-        sys.stdout = stdout
-
-print = debug # dont erase this line, otherwise you cannot use the print function for debug
-
-def upgradeBase():
-    return f"{UPGRADE_BUILDING}"
-
-def recruitSoldiers(type, amount, location=(1,VCENTER)):
-    return f"{RECRUIT_SOLDIERS}|{type}|{amount}|{location[0]}|{location[1]}".replace(" ","")
-
-def moveSoldiers(pos, to, amount):
-    return f"{MOVE_SOLDIERS}|{pos[0]}|{pos[1]}|{to[0]}|{to[1]}|{amount}".replace(" ","")
-
-def playActions(actions):
-    _PRINT(';'.join(map(str,actions)), flush=True)
+        
 
 def main():
-
+    
     open(DEBUG_FILE, 'w').close()
     difficulty, base_cost, base_prod = map(int,input().split())
-
+   
     env = Environment(difficulty, base_cost, base_prod)
     while 1:
         signal = env.readEnvironment()
@@ -340,14 +263,9 @@ def main():
             sys.exit(1)
 
         env.play()
-"""
-MAIN
-"""
-if __name__ == '__main__':
+        
+
+if __name__ == "__main__":
     main()
 
-    # tree = DecisionTree()
-    # tree.buildSplitTree()
 
-    # a = tree.selectMove([None, 1, None, None], tree.root)
-    # print(a)
