@@ -112,7 +112,7 @@ class Environment:
                         actions.append(recruitSoldiers(ALLIED_SOLDIER_RANGED, amount//2, (0,VCENTER+1)))
                         self.resources -= amount * SOLDIER_RANGED_COST
 
-                    amount = 20
+                    amount = 20 if self.turn % 5 != 0 else 30
                     if self.board[1,VCENTER,0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE] \
                         and self.resources >= amount * SOLDIER_RANGED_COST \
                         and amount > 0:
@@ -127,8 +127,7 @@ class Environment:
                 elif soldier_type == ALLIED_SOLDIER_MELEE:
                     
                     closest_enemy = Environment.findEnemy((x,y),enemies)
-                    if soldier_amount <= 25: # if still invisible, go for the retard
-                    # if closest_enemy is None:
+                    if soldier_amount <= 50: 
                         
                         # try to go forward
                         if self.board[x+1,y,0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE]:
@@ -156,7 +155,7 @@ class Environment:
 
 
                         go_to = [0]*2
-                        go_to[direction] = towards
+                        go_to[direction] = towards 
 
                         print((x,y))
                         print(delta)
@@ -174,7 +173,7 @@ class Environment:
 
                     if Environment.findEnemy((x,y), enemies) is None: # enemy not in range
 
-                        if y in [3, 7, 5] and x < 15:
+                        if y in [3, 7, 5] and x < 20:
 
                             if self.board[x+1,y,0] == EMPTY_CELL:
                                 actions.append(moveSoldiers((x,y),(x+1,y),soldier_amount))
@@ -183,7 +182,7 @@ class Environment:
                                 cenas = min([self.board[x,y,1], 50-self.board[x+1,y,1]])
                                 actions.append(moveSoldiers((x,y),(x+1,y),cenas))
 
-                        elif y not in [3, 7] and x > 2:
+                        elif y not in [3, 7] and x > 2 and x < 20:
 
                             if y in [0,1,2,6] and self.board[x,y+1,0] in [EMPTY_CELL, ALLIED_SOLDIER_RANGED]: # move towards 3
                                 actions.append(moveSoldiers((x,y), (x,y+1), soldier_amount))
