@@ -112,7 +112,10 @@ class Army:
 
     def readEnvironment(self):
         # state = input()
-        state = self.in_q.get()
+        try:
+            state = self.in_q.get(timeout=1)
+        except:
+            state = "ERROR"
         
         if state in ["END", "ERROR"]:
             return state
@@ -645,7 +648,10 @@ class Server:
             #     # debug("No actions were taken!")
             #     return [], None
 
-            actions=self.in_q.get()
+            try:
+                actions=self.in_q.get(timeout=1)
+            except:
+                actions=''
             
             if actions=='':
                 # debug("No actions were taken!")
@@ -898,6 +904,7 @@ def main():
                         num_neurons_output=17,
                         # num_neurons_hidden_layers=[56, 35, 35, 17],
                         # num_neurons_hidden_layers=[45],
+                        # num_neurons_hidden_layers=[56] * 5,
                         num_neurons_hidden_layers=[48, 40, 32, 24],
                         hidden_activations="relu",
                         output_activation="softmax")
