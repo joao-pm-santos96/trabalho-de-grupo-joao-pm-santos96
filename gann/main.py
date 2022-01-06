@@ -785,6 +785,7 @@ def fitness_func(solution, index):
             fitness = server_return['score'] * penalty * army_return
         except:
             fitness = -1
+            logger.critical('Could not read processes return values')
 
     else:
         logger.critical(f'Timeout. Exit codes: Server {server_t.exitcode} | Client {army_t.exitcode}')
