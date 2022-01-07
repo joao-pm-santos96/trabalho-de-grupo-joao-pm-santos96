@@ -94,7 +94,7 @@ class Environment:
         enemies = np.argwhere((soldiers == ENEMY_SOLDIER_MELEE) | (soldiers == ENEMY_SOLDIER_RANGED))
         enemies = [tuple(x) for x in enemies]
 
-        formation_rows = [3, 7]
+        formation_rows = [4, 6]
         formation_col = 15
         initial_col = 5
         
@@ -108,17 +108,28 @@ class Environment:
 
                 if soldier_type == ALLIED_MAIN_BUILDING:
 
+                    buy_condition = False
+
+
+
+
+                    # print(np.all(self.board[formation_col-2:formation_col+1,0:formation_rows[0]+1,1] == 50))
+
                     if self.board[0,VCENTER,1] < 7 \
-                        or False:
+                        or buy_condition:
 
                         if self.resources >= self.upgrade_cost:
                             actions.append(upgradeBase())
                             self.resources -= self.upgrade_cost                        
 
                     else: 
+                        # set amounts
+                        melee_amount = 20 #if self.turn % 8 != 0 else 30
+                        # ranged_amount = 16
+                        ranged_amount = int((self.resources - melee_amount * SOLDIER_MELEE_COST) // SOLDIER_RANGED_COST )
+
                         # recruit ranges
-                        ranged_amount = 16
-                        ranged_condition = ranged_amount > 0 \
+                        ranged_condition = ranged_amount > 1 \
                             and self.resources >= ranged_amount * SOLDIER_RANGED_COST 
 
                         recruit_pos = [0] * 2
@@ -131,7 +142,6 @@ class Environment:
                                 self.resources -= ranged_amount//np.count_nonzero(recruit_pos) * SOLDIER_RANGED_COST
 
                         # recruit melee
-                        melee_amount = 20 #if self.turn % 8 != 0 else 30
                         melee_amount = melee_amount if (melee_amount <= self.resources // SOLDIER_MELEE_COST) else self.resources // SOLDIER_MELEE_COST
                         melee_condition = melee_amount > 0 \
                             and self.resources >= melee_amount * SOLDIER_MELEE_COST \
@@ -205,7 +215,14 @@ class Environment:
 
                     max_soldiers = 50
 
-                    if Environment.findEnemy((x,y), enemies) is None: # enemy not in range
+                    if soldier_amount > max_soldiers:
+
+                        delta = soldier_amount - max_soldiers
+
+                        if self.board[x-1,y,0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE] if (x - 1) > 0 else False:
+                            actions.append(moveSoldiers((x,y),(x-1,y), delta))
+
+                    elif Environment.findEnemy((x,y), enemies) is None: # enemy not in range
 
                         if y not in formation_rows and x < initial_col: # split in formation
 
@@ -228,7 +245,7 @@ class Environment:
                                 if amount_frwd > 0 and x < formation_col: # move forward until max reached or in formation collumn
                                     actions.append(moveSoldiers((x,y),(x+1,y), amount_frwd))
 
-                            elif (y+y_dir) > 0 and (y+y_dir) < HEIGHT-1:
+                            elif (y+y_dir) >= 0 and (y+y_dir) <= HEIGHT-1:
                                 
                                 if np.array_equal(self.board[x+1,y], [ALLIED_SOLDIER_RANGED, max_soldiers]) \
                                     and self.board[x,y+y_dir,0] in [EMPTY_CELL, ALLIED_SOLDIER_RANGED]: 
