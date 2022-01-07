@@ -97,6 +97,7 @@ class Environment:
         formation_rows = [4, 6]
         formation_col = 15 if self.difficulty == 0 else 10
         initial_col = 5
+        max_desired_lvl = 14
         
         for x in range(WIDTH):
             for y in range(HEIGHT):
@@ -110,7 +111,7 @@ class Environment:
 
                     formation1 = np.all(self.board[formation_col-1:formation_col+1,0:formation_rows[0]+1,1] == 50)
                     formation2 = np.all(self.board[formation_col-1:formation_col+1,formation_rows[1]:HEIGHT,1] == 50)
-                    buy_condition = formation1 and formation2 and self.board[0,VCENTER,1] < 14
+                    buy_condition = formation1 and formation2 and self.board[0,VCENTER,1] < max_desired_lvl
 
                     if self.board[0,VCENTER,1] < 7 \
                         or buy_condition:
@@ -122,7 +123,7 @@ class Environment:
                     else: 
 
                         # set amounts
-                        melee_amount = 20 #if self.turn % 8 != 0 else 30
+                        melee_amount = 20 if self.board[0,VCENTER,1] < max_desired_lvl else 20
                         ranged_amount = min(int((self.resources - melee_amount * SOLDIER_MELEE_COST) // SOLDIER_RANGED_COST ), 100)
 
                         # update melee_amount if needed
@@ -145,7 +146,7 @@ class Environment:
                         melee_amount = melee_amount if (melee_amount <= self.resources // SOLDIER_MELEE_COST) else self.resources // SOLDIER_MELEE_COST
                         melee_condition = melee_amount > 0 \
                             and self.resources >= melee_amount * SOLDIER_MELEE_COST \
-                            and self.turn % 2 == 0
+                            and self.turn % 1 == 0
 
                         if self.board[1,VCENTER,0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE] \
                             and melee_condition:
@@ -184,7 +185,7 @@ class Environment:
                         
                         # try to go forward
                         if self.board[x+1,y,0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE] \
-                            and (self.board[x+1,y,0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE]) if (x+2) < WIDTH - 1 else True:
+                            and (self.board[x+2,y,0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE]) if (x+2) < WIDTH - 1 else True:
 
                             actions.append(moveSoldiers((x,y), (x+1,y), soldier_amount))
 
@@ -219,7 +220,7 @@ class Environment:
 
                         delta = soldier_amount - max_soldiers
 
-                        if self.board[x-1,y,0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE] if (x - 1) > 0 else False:
+                        if self.board[x-1,y,0] in [EMPTY_CELL, ALLIED_SOLDIER_RANGED] if (x - 1) > 0 else False:
                             actions.append(moveSoldiers((x,y),(x-1,y), delta))
 
                     elif Environment.findEnemy((x,y), enemies) is None: # enemy not in range
@@ -256,24 +257,23 @@ class Environment:
                                         actions.append(moveSoldiers((x,y),(x,y+y_dir), amount_y_dir))
 
 
-                            
+        # filter moves to same cell              
+        seen = []
+        uniq = []
 
-
-
-
-                                
-
-
-
-
-
-
-                            
-
-
-
-        
-
+        for action in actions:
+            if '|' in action:
+                data = action.split('|')
+                if data[0] == str(MOVE_SOLDIERS):
+                    tmp = '|' + data[3] + '|' + data[4] + '|'
+                    if tmp not in seen:
+                        seen.append(tmp)
+                        uniq.append(action)
+                else:
+                    uniq.append(action)
+            else:
+                uniq.append(action)
+        actions = uniq
         
         self.turn += 1  
         playActions(actions)
