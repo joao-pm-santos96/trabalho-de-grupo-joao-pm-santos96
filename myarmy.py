@@ -108,32 +108,33 @@ class Environment:
 
                 if soldier_type == ALLIED_MAIN_BUILDING:
 
-                    # recruit ranged
-                    amount = 20 if self.board[0,VCENTER,1] < 5 else 40
-                    # amount = int((self.resources * .45) // SOLDIER_RANGED_COST)
-                    if self.board[0,VCENTER-1,0] in [EMPTY_CELL, ALLIED_SOLDIER_RANGED] \
-                        and self.board[0,VCENTER+1,0] in [EMPTY_CELL, ALLIED_SOLDIER_RANGED] \
-                        and self.resources >= amount * SOLDIER_RANGED_COST \
-                        and amount > 1:
+                    if self.board[0,VCENTER,1] > 5: # fast upgrade
 
-                        actions.append(recruitSoldiers(ALLIED_SOLDIER_RANGED, amount//2, (0,VCENTER-1)))
-                        actions.append(recruitSoldiers(ALLIED_SOLDIER_RANGED, amount//2, (0,VCENTER+1)))
-                        self.resources -= amount * SOLDIER_RANGED_COST
+                        # recruit ranged
+                        amount = 20 if self.board[0,VCENTER,1] < 6 else 40
+                        if self.board[0,VCENTER-1,0] in [EMPTY_CELL, ALLIED_SOLDIER_RANGED] \
+                            and self.board[0,VCENTER+1,0] in [EMPTY_CELL, ALLIED_SOLDIER_RANGED] \
+                            and self.resources >= amount * SOLDIER_RANGED_COST \
+                            and amount > 1:
 
-                    # recruit melee
-                    amount = 20 if self.turn % 5 != 0 else 30
-                    # amount = int((self.resources * .45) // SOLDIER_MELEE_COST)
-                    if self.board[1,VCENTER,0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE] \
-                        and self.resources >= amount * SOLDIER_MELEE_COST \
-                        and amount > 0:
+                            actions.append(recruitSoldiers(ALLIED_SOLDIER_RANGED, amount//2, (0,VCENTER-1)))
+                            actions.append(recruitSoldiers(ALLIED_SOLDIER_RANGED, amount//2, (0,VCENTER+1)))
+                            self.resources -= amount * SOLDIER_RANGED_COST
 
-                        actions.append(recruitSoldiers(ALLIED_SOLDIER_MELEE, amount))
-                        self.resources -= amount * SOLDIER_MELEE_COST
+                        # recruit melee
+                        amount = 20 if self.turn % 5 != 0 else 30
+                        if self.board[1,VCENTER,0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE] \
+                            and self.resources >= amount * SOLDIER_MELEE_COST \
+                            and amount > 0 \
+                            and self.turn % 2 == 0:
 
-                    # upgrade
-                    if self.resources >= self.upgrade_cost:
-                        actions.append(upgradeBase())
-                        self.resources -= self.upgrade_cost
+                            actions.append(recruitSoldiers(ALLIED_SOLDIER_MELEE, amount))
+                            self.resources -= amount * SOLDIER_MELEE_COST
+                    else:
+                        # upgrade
+                        if self.resources >= self.upgrade_cost:
+                            actions.append(upgradeBase())
+                            self.resources -= self.upgrade_cost
 
                 elif soldier_type == ALLIED_SOLDIER_MELEE:
                     
@@ -173,9 +174,13 @@ class Environment:
 
                             for d in dirs:
                                 if (y + d) >= 0 and (y + d) < HEIGHT:
-                                    if self.board[x,y+d,0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE]:
+                                    if self.board[x,y+d,0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE] \
+                                        and self.board[x+1,y+d,0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE]:
                                         dest=(x,y+d)
                                         break
+
+                            if dest == (0,0) and self.board[x-1,y,0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE]:
+                                actions.append(moveSoldiers((x,y), (x-1,y), soldier_amount))
 
                             if dest != (0,0):
                                 actions.append(moveSoldiers((x,y), dest, self.board[x,y,1]))
@@ -209,7 +214,7 @@ class Environment:
                                 if amount_frwd > 0 and x < formation_col: # move forward until max reached or in formation collumn
                                     actions.append(moveSoldiers((x,y),(x+1,y), amount_frwd))
 
-                            elif (y+y_dir) >= 0 and (y+y_dir) < HEIGHT:
+                            elif (y+y_dir) > 0 and (y+y_dir) < HEIGHT-1:
                                 
                                 if np.array_equal(self.board[x+1,y], [ALLIED_SOLDIER_RANGED, max_soldiers]) \
                                     and self.board[x,y+y_dir,0] in [EMPTY_CELL, ALLIED_SOLDIER_RANGED]: 
