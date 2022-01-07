@@ -95,7 +95,7 @@ class Environment:
         enemies = [tuple(x) for x in enemies]
 
         formation_rows = [3, 7]
-        formation_col = 20
+        formation_col = 16
         initial_col = 5
 
         for x in range(WIDTH):
@@ -110,18 +110,21 @@ class Environment:
 
                     # recruit ranged
                     amount = 20 if self.board[0,VCENTER,1] < 5 else 40
+                    # amount = int((self.resources * .45) // SOLDIER_RANGED_COST)
                     if self.board[0,VCENTER-1,0] in [EMPTY_CELL, ALLIED_SOLDIER_RANGED] \
                         and self.board[0,VCENTER+1,0] in [EMPTY_CELL, ALLIED_SOLDIER_RANGED] \
-                        and self.resources >= amount * SOLDIER_RANGED_COST:
+                        and self.resources >= amount * SOLDIER_RANGED_COST \
+                        and amount > 1:
 
                         actions.append(recruitSoldiers(ALLIED_SOLDIER_RANGED, amount//2, (0,VCENTER-1)))
                         actions.append(recruitSoldiers(ALLIED_SOLDIER_RANGED, amount//2, (0,VCENTER+1)))
                         self.resources -= amount * SOLDIER_RANGED_COST
 
                     # recruit melee
-                    amount = 20 if self.turn % 2 != 0 else 30
+                    amount = 20 if self.turn % 5 != 0 else 30
+                    # amount = int((self.resources * .45) // SOLDIER_MELEE_COST)
                     if self.board[1,VCENTER,0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE] \
-                        and self.resources >= amount * SOLDIER_RANGED_COST \
+                        and self.resources >= amount * SOLDIER_MELEE_COST \
                         and amount > 0:
 
                         actions.append(recruitSoldiers(ALLIED_SOLDIER_MELEE, amount))
