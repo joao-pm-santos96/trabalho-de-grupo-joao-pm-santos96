@@ -107,7 +107,7 @@ class Environment:
                 y_dir = [1,-1][y<VCENTER]
 
                 if soldier_type == ALLIED_MAIN_BUILDING:
-                    
+
                     # recruit ranged
                     amount = 20 if self.board[0,VCENTER,1] < 5 else 40
                     if self.board[0,VCENTER-1,0] in [EMPTY_CELL, ALLIED_SOLDIER_RANGED] \
@@ -118,7 +118,8 @@ class Environment:
                         actions.append(recruitSoldiers(ALLIED_SOLDIER_RANGED, amount//2, (0,VCENTER+1)))
                         self.resources -= amount * SOLDIER_RANGED_COST
 
-                    amount = 20 if self.turn % 5 != 0 else 30
+                    # recruit melee
+                    amount = 20 if self.turn % 2 != 0 else 30
                     if self.board[1,VCENTER,0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE] \
                         and self.resources >= amount * SOLDIER_RANGED_COST \
                         and amount > 0:
@@ -126,6 +127,7 @@ class Environment:
                         actions.append(recruitSoldiers(ALLIED_SOLDIER_MELEE, amount))
                         self.resources -= amount * SOLDIER_MELEE_COST
 
+                    # upgrade
                     if self.resources >= self.upgrade_cost:
                         actions.append(upgradeBase())
                         self.resources -= self.upgrade_cost
@@ -177,47 +179,6 @@ class Environment:
 
 
 
-
-
-
-
-                        # elif (y + 1) < HEIGHT - 1: # try to go down
-                        #     if self.board[x,y+1,0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE] \
-                        #         and self.board[x+1,y+1,0] not in [ENEMY_SOLDIER_MELEE, ENEMY_SOLDIER_RANGED] \
-                        #         and self.board[x-1,y+1,0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE]: 
-
-                        #         actions.append(moveSoldiers((x,y), (x,y+1), soldier_amount))
-
-                        # elif (y - 1) > 0: # try to go up
-                        #     if self.board[x,y-1,0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE] \
-                        #         and self.board[x+1,y-1,0] not in [ENEMY_SOLDIER_MELEE, ENEMY_SOLDIER_RANGED] \
-                        #         and self.board[x-1,y-1,0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE]:
-
-                        #         actions.append(moveSoldiers((x,y), (x,y-1), soldier_amount))
-
-
-                    # elif closest_enemy is not None: 
-                    #     delta = [closest_enemy[0]-x,closest_enemy[1]-y]
-
-                    #     direction = np.argmax(np.abs(delta))
-                    #     towards = np.sign(delta[direction])
-
-
-                    #     go_to = [0]*2
-                    #     go_to[direction] = towards 
-
-                    #     print((x,y))
-                    #     print(delta)
-                    #     print(direction)
-                    #     print(towards)
-                    #     print(go_to)
-
-                    #     dest = np.add((x,y), go_to).astype(int)
-
-                    #     if self.board[dest[0], dest[1],0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE]:
-                    #         actions.append(moveSoldiers((x,y),dest,soldier_amount))
-
-
                 elif soldier_type == ALLIED_SOLDIER_RANGED:
 
                     max_soldiers = 50
@@ -262,90 +223,6 @@ class Environment:
 
 
                                 
-
-
-
-
-                        # elif y in formation_rows and x < formation_col \
-                        #     and not np.array_equal(self.board[x+1,y], [ALLIED_SOLDIER_RANGED, max_soldiers]): # go forward
-                            
-                        #     if self.board[x+1,y,0] in [EMPTY_CELL, ALLIED_SOLDIER_RANGED] \
-                        #         and ((self.board[x,y,1] or 0) + (self.board[x+1,y,1] or 0))  <= max_soldiers: # only if sum will not get higher than threshold
-
-                        #         actions.append(moveSoldiers((x,y),(x+1,y), self.board[x,y,1]))
-
-                        #     elif self.board[x+1,y,0] in [EMPTY_CELL, ALLIED_SOLDIER_RANGED] \
-                        #         and ((self.board[x,y,1] or 0) + (self.board[x+1,y,1] or 0))  > max_soldiers: # split soldiers to allway be 50 at max
-
-                        #         amount_frwd = min([self.board[x,y,1], max_soldiers-self.board[x+1,y,1]])
-                        #         if amount_frwd > 0:
-                        #             actions.append(moveSoldiers((x,y),(x+1,y), amount_frwd))
-
-                        # elif y in formation_rows and x < formation_col \
-                        #     and np.array_equal(self.board[x+1,y], [ALLIED_SOLDIER_RANGED, max_soldiers]): #  go up/down
-
-                        #     y_dir = [1,-1][y<VCENTER]
-
-                        #     if self.board[x,y+y_dir,0] in [EMPTY_CELL, ALLIED_SOLDIER_RANGED]:
-                        #         actions.append(moveSoldiers((x,y),(x,y+y_dir), self.board[x,y,1]))
-
-
-
-                                
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                        # if y in [3, 7, 5] and x < 20:
-
-                        #     if self.board[x+1,y,0] == EMPTY_CELL:
-                        #         actions.append(moveSoldiers((x,y),(x+1,y),soldier_amount))
-
-                        # # split them in formation 
-                        # elif y not in [3, 7] and x > 2 and x < 20:
-
-                        #     if y in [0,1,2,6] and self.board[x,y+1,0] in [EMPTY_CELL, ALLIED_SOLDIER_RANGED]: # move towards 3
-                        #         actions.append(moveSoldiers((x,y), (x,y+1), soldier_amount))
-
-                        #     elif y in [10,9,8,4] and self.board[x,y-1,0] in [EMPTY_CELL, ALLIED_SOLDIER_RANGED]: # move towards 7
-                        #         actions.append(moveSoldiers((x,y), (x,y-1), soldier_amount))
-
-                        #     elif y == 5 and self.board[x,y+1,0] in [EMPTY_CELL, ALLIED_SOLDIER_RANGED] and soldier_amount > 1:
-                        #         actions.append(moveSoldiers((x,y), (x,y+1), soldier_amount//2))
-
-                        #     elif y == 5 and self.board[x,y-1,0] in [EMPTY_CELL, ALLIED_SOLDIER_RANGED] and soldier_amount > 1:
-                        #         actions.append(moveSoldiers((x,y), (x,y-1), soldier_amount - soldier_amount//2))
-
-                        # elif x == 20 and y not in [0,10]:
-                        #     # try go forward
-                        #     if self.board[x+1,y,0] == ALLIED_SOLDIER_RANGED and self.board[x+1,y,1] < 50 or self.board[x+1,y,0] == EMPTY_CELL:
-                        #         cenas = min([self.board[x,y,1], 50-self.board[x+1,y,1]])
-                        #         actions.append(moveSoldiers((x,y),(x+1,y),cenas))
-
-                        #     # try move up
-                        #     elif self.board[x,y-1,0] == EMPTY_CELL and self.board[x+1,y,1] >= 50 and y < VCENTER:
-                        #         actions.append(moveSoldiers((x,y),(x,y-1),self.board[x,y,1]))
-
-                        #     # try move down
-                        #     elif self.board[x,y+1,0] == EMPTY_CELL and self.board[x+1,y,1] >= 50 and y > VCENTER:
-                        #         actions.append(moveSoldiers((x,y),(x,y+1),self.board[x,y,1]))
-
-                        # elif x <= 2:
-
-                        #     if self.board[x+1,y,0] in [EMPTY_CELL, ALLIED_SOLDIER_RANGED]:
-                        #         actions.append(moveSoldiers((x,y),(x+1,y),soldier_amount))
-
 
 
 
