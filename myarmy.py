@@ -95,9 +95,9 @@ class Environment:
         enemies = [tuple(x) for x in enemies]
 
         formation_rows = [4, 6]
-        formation_col = 15 if self.difficulty == 0 else 10
+        formation_col = 14 if self.difficulty == 0 else 10
         initial_col = 5
-        max_desired_lvl = 14
+        max_desired_lvl = 14 
         
         for x in range(WIDTH):
             for y in range(HEIGHT):
@@ -124,10 +124,7 @@ class Environment:
 
                         # set amounts
                         melee_amount = 20 if self.board[0,VCENTER,1] < max_desired_lvl else 20
-                        ranged_amount = min(int((self.resources - melee_amount * SOLDIER_MELEE_COST) // SOLDIER_RANGED_COST ), 100)
-
-                        # update melee_amount if needed
-                        melee_amount = melee_amount if ranged_amount < 100 else int((self.resources - ranged_amount * SOLDIER_RANGED_COST))
+                        ranged_amount = int((self.resources - melee_amount * SOLDIER_MELEE_COST) // SOLDIER_RANGED_COST )
 
                         # recruit ranges
                         ranged_condition = ranged_amount > 1 \
