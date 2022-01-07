@@ -153,64 +153,47 @@ class Environment:
                         if dest != (0,0):
                             actions.append(moveSoldiers((x,y), dest, self.board[x,y,1]))
 
-
-
-
-
                     else: # try to move forward avoiding enemies
                         
                         # try to go forward
                         if self.board[x+1,y,0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE]:
                             actions.append(moveSoldiers((x,y), (x+1,y), soldier_amount))
 
-                        elif (y + 1) < HEIGHT - 1: # try to go down
-                            if self.board[x,y+1,0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE] \
-                                and self.board[x+1,y+1,0] not in [ENEMY_SOLDIER_MELEE, ENEMY_SOLDIER_RANGED] \
-                                and self.board[x-1,y+1,0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE]: 
+                        else:
 
-                                actions.append(moveSoldiers((x,y), (x,y+1), soldier_amount))
+                            # try to go up or down
+                            dest = (0,0)
+                            dirs = [1,-1]
+                            random.shuffle(dirs)
 
-                        elif (y - 1) > 0: # try to go up
-                            if self.board[x,y-1,0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE] \
-                                and self.board[x+1,y-1,0] not in [ENEMY_SOLDIER_MELEE, ENEMY_SOLDIER_RANGED] \
-                                and self.board[x-1,y-1,0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE]:
+                            for d in dirs:
+                                if (y + d) >= 0 and (y + d) < HEIGHT:
+                                    if self.board[x,y+d,0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE]:
+                                        dest=(x,y+d)
+                                        break
 
-                                actions.append(moveSoldiers((x,y), (x,y-1), soldier_amount))
+                            if dest != (0,0):
+                                actions.append(moveSoldiers((x,y), dest, self.board[x,y,1]))
 
 
 
 
-                    # if (soldier_amount <= max_soldiers) or x <= formation_col: 
-                        
-                    #     # try to go forward
-                    #     if self.board[x+1,y,0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE]:
-                    #         actions.append(moveSoldiers((x,y), (x+1,y), soldier_amount))
 
-                    #     elif (y + 1) < HEIGHT - 1: # try to go down
-                    #         if self.board[x,y+1,0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE] \
-                    #             and self.board[x+1,y+1,0] not in [ENEMY_SOLDIER_MELEE, ENEMY_SOLDIER_RANGED] \
-                    #             and self.board[x-1,y+1,0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE]: 
 
-                    #             actions.append(moveSoldiers((x,y), (x,y+1), soldier_amount))
 
-                    #     elif (y - 1) > 0: # try to go up
-                    #         if self.board[x,y-1,0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE] \
-                    #             and self.board[x+1,y-1,0] not in [ENEMY_SOLDIER_MELEE, ENEMY_SOLDIER_RANGED] \
-                    #             and self.board[x-1,y-1,0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE]:
+                        # elif (y + 1) < HEIGHT - 1: # try to go down
+                        #     if self.board[x,y+1,0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE] \
+                        #         and self.board[x+1,y+1,0] not in [ENEMY_SOLDIER_MELEE, ENEMY_SOLDIER_RANGED] \
+                        #         and self.board[x-1,y+1,0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE]: 
 
-                    #             actions.append(moveSoldiers((x,y), (x,y-1), soldier_amount))
+                        #         actions.append(moveSoldiers((x,y), (x,y+1), soldier_amount))
 
-                    # elif soldier_amount > max_soldiers: # move towards formation rows
+                        # elif (y - 1) > 0: # try to go up
+                        #     if self.board[x,y-1,0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE] \
+                        #         and self.board[x+1,y-1,0] not in [ENEMY_SOLDIER_MELEE, ENEMY_SOLDIER_RANGED] \
+                        #         and self.board[x-1,y-1,0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE]:
 
-                    #     # find closest row
-                    #         min_idx = np.argmin([abs(y-formation_rows[0]), abs(y-formation_rows[1])])
-
-                    #         # move towards that row
-                    #         y_dir = np.sign(formation_rows[min_idx] - y)
-
-                    #         if self.board[x,y+y_dir,0] not in [ALLIED_SOLDIER_RANGED]:
-                    #             actions.append(moveSoldiers((x,y),(x,y+y_dir), self.board[x,y,1]))
-
+                        #         actions.append(moveSoldiers((x,y), (x,y-1), soldier_amount))
 
 
                     # elif closest_enemy is not None: 
