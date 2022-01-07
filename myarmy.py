@@ -95,7 +95,7 @@ class Environment:
         enemies = [tuple(x) for x in enemies]
 
         formation_rows = [4, 6]
-        formation_col = 15
+        formation_col = 15 if self.difficulty == 0 else 10
         initial_col = 5
         
         for x in range(WIDTH):
@@ -108,12 +108,9 @@ class Environment:
 
                 if soldier_type == ALLIED_MAIN_BUILDING:
 
-                    buy_condition = False
-
-
-
-
-                    # print(np.all(self.board[formation_col-2:formation_col+1,0:formation_rows[0]+1,1] == 50))
+                    formation1 = np.all(self.board[formation_col-1:formation_col+1,0:formation_rows[0]+1,1] == 50)
+                    formation2 = np.all(self.board[formation_col-1:formation_col+1,formation_rows[1]:HEIGHT,1] == 50)
+                    buy_condition = formation1 and formation2 and self.board[0,VCENTER,1] < 14
 
                     if self.board[0,VCENTER,1] < 7 \
                         or buy_condition:
@@ -123,10 +120,13 @@ class Environment:
                             self.resources -= self.upgrade_cost                        
 
                     else: 
+
                         # set amounts
                         melee_amount = 20 #if self.turn % 8 != 0 else 30
-                        # ranged_amount = 16
-                        ranged_amount = int((self.resources - melee_amount * SOLDIER_MELEE_COST) // SOLDIER_RANGED_COST )
+                        ranged_amount = min(int((self.resources - melee_amount * SOLDIER_MELEE_COST) // SOLDIER_RANGED_COST ), 100)
+
+                        # update melee_amount if needed
+                        melee_amount = melee_amount if ranged_amount < 100 else int((self.resources - ranged_amount * SOLDIER_RANGED_COST))
 
                         # recruit ranges
                         ranged_condition = ranged_amount > 1 \
@@ -215,7 +215,7 @@ class Environment:
 
                     max_soldiers = 50
 
-                    if soldier_amount > max_soldiers:
+                    if soldier_amount > max_soldiers and self.board[x+1,y,0] == ALLIED_SOLDIER_RANGED:
 
                         delta = soldier_amount - max_soldiers
 
