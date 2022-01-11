@@ -90,13 +90,44 @@ class Environment:
         print("Current production per turn is:", self.production)
         print("Current building cost is:", self.upgrade_cost)
 
+        if self.difficulty == 0:
+            actions = self.dif0()
+        elif self.difficulty == 1:
+            actions = self.dif1()
+
+        # filter moves to same cell              
+        seen = []
+        uniq = []
+
+        for action in actions:
+            if '|' in action:
+                data = action.split('|')
+                if data[0] == str(MOVE_SOLDIERS):
+                    tmp = '|' + data[3] + '|' + data[4] + '|'
+                    if tmp not in seen:
+                        seen.append(tmp)
+                        uniq.append(action)
+                else:
+                    uniq.append(action)
+            else:
+                uniq.append(action)
+        actions = uniq
+        
+        self.turn += 1  
+        playActions(actions)
+
+
+    def dif0(self):
+        actions = []
+
         soldiers = self.board[:,:,0]
         enemies = np.argwhere((soldiers == ENEMY_SOLDIER_MELEE) | (soldiers == ENEMY_SOLDIER_RANGED))
         enemies = [tuple(x) for x in enemies]
 
-        formation_rows = [4, 6]
-        formation_col = 14 if self.difficulty == 0 else 10
+        formation_rows = [4,6] 
+        formation_col = 14
         initial_col = 5
+        initial_desired_level = 7
         max_desired_lvl = 14 
         
         for x in range(WIDTH):
@@ -111,9 +142,10 @@ class Environment:
 
                     formation1 = np.all(self.board[formation_col-1:formation_col+1,0:formation_rows[0]+1,1] == 50)
                     formation2 = np.all(self.board[formation_col-1:formation_col+1,formation_rows[1]:HEIGHT,1] == 50)
+
                     buy_condition = formation1 and formation2 and self.board[0,VCENTER,1] < max_desired_lvl
 
-                    if self.board[0,VCENTER,1] < 7 \
+                    if self.board[0,VCENTER,1] < initial_desired_level \
                         or buy_condition:
 
                         if self.resources >= self.upgrade_cost:
@@ -123,7 +155,7 @@ class Environment:
                     else: 
 
                         # set amounts
-                        melee_amount = 20 if self.board[0,VCENTER,1] < max_desired_lvl else 20
+                        melee_amount = 20 
                         ranged_amount = int((self.resources - melee_amount * SOLDIER_MELEE_COST) // SOLDIER_RANGED_COST )
 
                         # recruit ranges
@@ -151,12 +183,9 @@ class Environment:
                             actions.append(recruitSoldiers(ALLIED_SOLDIER_MELEE, melee_amount))
                             self.resources -= melee_amount * SOLDIER_MELEE_COST
 
-
-
-
                 elif soldier_type == ALLIED_SOLDIER_MELEE:
                     
-                    closest_enemy = Environment.findEnemy((x,y),enemies)
+                    # closest_enemy = Environment.findEnemy((x,y),enemies)
                     max_soldiers = 20
 
                     if x > formation_col \
@@ -179,7 +208,6 @@ class Environment:
                             actions.append(moveSoldiers((x,y), dest, self.board[x,y,1]))
 
                     else: # try to move forward avoiding enemies
-                    # elif self.board[0,VCENTER,1] < max_desired_lvl or closest_enemy is None: # try to move forward avoiding enemies
                         
                         # try to go forward
                         if self.board[x+1,y,0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE] \
@@ -207,27 +235,6 @@ class Environment:
 
                             if dest != (0,0):
                                 actions.append(moveSoldiers((x,y), dest, self.board[x,y,1]))
-
-                    # elif closest_enemy is not None:
-
-                    #     direction = [closest_enemy[0]-x,closest_enemy[1]-y]
-                    #     choosen_dir = np.argmin(np.abs(direction))
-                    #     motion_dir = np.sign(direction[choosen_dir])
-
-                    #     move = [0,0]
-                    #     move[choosen_dir] = motion_dir
-
-                    #     if x+move[0] > 0 \
-                    #         and x+move[0] < WIDTH - 1 \
-                    #         and y+move[1] > 0 \
-                    #         and y+move[1] < HEIGHT - 1 \
-                    #         and move != [0,0]:
-
-                    #         if self.board[x+move[0],y+move[1],0] not in [ALLIED_MAIN_BUILDING, ALLIED_SOLDIER_RANGED]:
-                    #             actions.append(moveSoldiers((x,y),(x+move[0],y+move[1]),self.board[x,y,1]))
-
-
-
 
                 elif soldier_type == ALLIED_SOLDIER_RANGED:
 
@@ -260,7 +267,7 @@ class Environment:
 
                                 amount_frwd = min([self.board[x,y,1], max_soldiers-self.board[x+1,y,1]]) 
 
-                                if amount_frwd > 0 and x < formation_col: # move forward until max reached or in formation collumn
+                                if amount_frwd > 0 and x < formation_col: # move forward until max reached or in formation column
                                     actions.append(moveSoldiers((x,y),(x+1,y), amount_frwd))
 
                             elif (y+y_dir) >= 0 and (y+y_dir) <= HEIGHT-1:
@@ -273,27 +280,17 @@ class Environment:
                                     if amount_y_dir > 0: # move up/down until column reached
                                         actions.append(moveSoldiers((x,y),(x,y+y_dir), amount_y_dir))
 
+        return actions
 
-        # filter moves to same cell              
-        seen = []
-        uniq = []
+    def dif1(self):
+        actions = []
 
-        for action in actions:
-            if '|' in action:
-                data = action.split('|')
-                if data[0] == str(MOVE_SOLDIERS):
-                    tmp = '|' + data[3] + '|' + data[4] + '|'
-                    if tmp not in seen:
-                        seen.append(tmp)
-                        uniq.append(action)
-                else:
-                    uniq.append(action)
-            else:
-                uniq.append(action)
-        actions = uniq
-        
-        self.turn += 1  
-        playActions(actions)
+
+
+
+
+
+        return actions
 
     @staticmethod
     def findEnemy(pos, enemies, distance = 3):
