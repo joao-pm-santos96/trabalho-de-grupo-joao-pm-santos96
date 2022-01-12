@@ -111,7 +111,7 @@ class Environment:
                     uniq.append(action)
             else:
                 uniq.append(action)
-        actions = uniq
+        actions = uniq 
         
         self.turn += 1  
         playActions(actions)
@@ -290,6 +290,7 @@ class Environment:
         enemies = [tuple(x) for x in enemies]
 
         formation_col = 14
+        initial_desired_level = 5
 
         for x in range(WIDTH):
             for y in range(HEIGHT):
@@ -300,25 +301,56 @@ class Environment:
                 y_dir = [1,-1][y<VCENTER]
 
                 if soldier_type == ALLIED_MAIN_BUILDING:
-                    
-                    # Recruit melee
-                    melee_pos = (0,VCENTER-1)
-                    amount = self.resources // SOLDIER_MELEE_COST
 
-                    if self.resources >= SOLDIER_MELEE_COST \
-                        and self.board[melee_pos[0], melee_pos[1], 0] == EMPTY_CELL \
-                        and amount >= 20:
+                    if self.board[0,VCENTER,1] < initial_desired_level:
 
-                        amount = 20
-                        actions.append(recruitSoldiers(ALLIED_SOLDIER_MELEE, amount, melee_pos))
-                        self.resources -= amount * SOLDIER_MELEE_COST
+                        if self.resources >= self.upgrade_cost:
+                            actions.append(upgradeBase())
+                            self.resources -= self.upgrade_cost
+
+                    else:
                     
+                        # # Recruit melee
+                        # melee_pos = (0,VCENTER-1)
+                        # amount = self.resources // SOLDIER_MELEE_COST
+
+                        # if self.resources >= SOLDIER_MELEE_COST \
+                        #     and self.board[melee_pos[0], melee_pos[1], 0] == EMPTY_CELL \
+                        #     and amount >= 20:
+
+                        #     amount = 20
+                        #     actions.append(recruitSoldiers(ALLIED_SOLDIER_MELEE, amount, melee_pos))
+                        #     self.resources -= amount * SOLDIER_MELEE_COST
+                        
+                        # # Recruit ranged
+                        # amount = self.resources // SOLDIER_RANGED_COST
+                        # if amount > 2:
+                        #     actions.append(recruitSoldiers(ALLIED_SOLDIER_RANGED, amount))
+                        #     self.resources -= amount * SOLDIER_RANGED_COST
+
+                        # set amounts
+                        melee_amount = 20 
+                        ranged_amount = int((self.resources - melee_amount * SOLDIER_MELEE_COST) // SOLDIER_RANGED_COST )
+
+                        # recruit ranges
+                        ranged_condition = ranged_amount > 0 \
+                            and self.resources >= ranged_amount * SOLDIER_RANGED_COST \
+                            and self.board[1,VCENTER,0] in [EMPTY_CELL, ALLIED_SOLDIER_RANGED]
+
+                        if ranged_condition:
+                            actions.append(recruitSoldiers(ALLIED_SOLDIER_RANGED, ranged_amount))
+                            self.resources -= ranged_amount * SOLDIER_RANGED_COST
+
+                        # recruit melee
+                        melee_amount = melee_amount if (melee_amount <= self.resources // SOLDIER_MELEE_COST) else self.resources // SOLDIER_MELEE_COST
+                        melee_condition = melee_amount > 0 \
+                            and self.board[0,VCENTER-1,0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE]
+
+                        if melee_condition:
+                            actions.append(recruitSoldiers(ALLIED_SOLDIER_MELEE, melee_amount, (0,VCENTER-1)))
+                            self.resources -= melee_amount * SOLDIER_MELEE_COST
+
                     
-                    # Recruit ranged
-                    amount = self.resources // SOLDIER_RANGED_COST
-                    if amount > 0:
-                        actions.append(recruitSoldiers(ALLIED_SOLDIER_RANGED, amount))
-                        self.resources -= amount * SOLDIER_RANGED_COST
 
 
 
@@ -365,9 +397,40 @@ class Environment:
                                 if x < formation_col and amount_frwd > 0:
                                     actions.append(moveSoldiers((x,y),(x+1,y), amount_frwd))
 
-                          
+                            
+                            elif self.board[x+1,y,1] >= max_soldiers \
+                                or x >= formation_col: # split
 
+                                if y == VCENTER:
+                                    
+                                    dirs = [1,-1]
+                                    random.shuffle(dirs)
 
+                                    amount0 = soldier_amount // 2
+                                    amount0 = min([amount0, max_soldiers - self.board[x,y+dirs[0],1]])
+
+                                    amount1 = soldier_amount - amount0
+                                    amount1 = min([amount1, max_soldiers - self.board[x,y+dirs[1],1]])
+
+                                    if amount0 > 0 and self.board[x,y+dirs[0],0] in [EMPTY_CELL, ALLIED_SOLDIER_RANGED]:
+                                        actions.append(moveSoldiers((x,y),(x,y+dirs[0]), amount0))
+
+                                    if amount1 > 0 and self.board[x,y+dirs[1],0] in [EMPTY_CELL, ALLIED_SOLDIER_RANGED]:
+                                        actions.append(moveSoldiers((x,y),(x,y+dirs[1]), amount1))
+
+                                elif y in formation_rows[1:-1]:
+
+                                    if self.board[x,y+y_dir,0] in [EMPTY_CELL, ALLIED_SOLDIER_RANGED] \
+                                        and self.board[x,y+y_dir,1] < self.board[x,y,1]:
+
+                                        delta = self.board[x,y,1] - self.board[x,y+y_dir,1]
+
+                                        amount = min([delta, max_soldiers-self.board[x,y+y_dir,1]])
+
+                                        if amount > 0:
+                                            actions.append(moveSoldiers((x,y),(x,y+y_dir), amount))
+
+                                
 
 
 
