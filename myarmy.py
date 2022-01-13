@@ -115,10 +115,11 @@ class Environment:
                     uniq.append(action)
             else:
                 uniq.append(action)
-        actions = uniq 
+        # actions = uniq 
         
         self.turn += 1  
-        playActions(actions)
+        # playActions(actions)
+        playActions(uniq)
 
         print(f'Play time: {(time.time() - tic)*1000}')
 
@@ -136,7 +137,7 @@ class Environment:
         # initial_desired_level = 7
         # max_desired_lvl = 14
 
-        lvl_steps = np.array([7, 14, 17])
+        lvl_steps = np.array([7, 14, 16])
         extra_upgrd_cond = np.zeros(lvl_steps.shape, dtype=bool)
 
         extra_upgrd_cond[0] = True
@@ -144,6 +145,7 @@ class Environment:
             and np.all(self.board[formation_col-1:formation_col+1, formation_rows[1]:HEIGHT,1] == 50)
         extra_upgrd_cond[2] = np.all(self.board[formation_col-2:formation_col+1, 0:formation_rows[0]+1,1] == 50) \
             and np.all(self.board[formation_col-2:formation_col+1, formation_rows[1]:HEIGHT,1] == 50)
+            # TODO impose that they must be ranged allied
         
         for x in range(WIDTH):
             for y in range(HEIGHT):
@@ -327,7 +329,13 @@ class Environment:
         enemies = [tuple(x) for x in enemies]
 
         formation_col = 14
-        initial_desired_level = 5
+        formation_rows = list(range(1, HEIGHT-1))
+        lvl_steps = np.array([5, 10])
+        extra_upgrd_cond = np.zeros(lvl_steps.shape, dtype=bool)
+
+        extra_upgrd_cond[0] = True
+        extra_upgrd_cond[1] = np.all(self.board[formation_col-1:formation_col+1, formation_rows[0]:formation_rows[-1]+1, 1] == 50) 
+        # TODO impose that they must be ranged allied
 
         for x in range(WIDTH):
             for y in range(HEIGHT):
@@ -339,11 +347,23 @@ class Environment:
 
                 if soldier_type == ALLIED_MAIN_BUILDING:
 
-                    if self.board[0,VCENTER,1] < initial_desired_level:
+                    # if self.board[0,VCENTER,1] < initial_desired_level:
 
+                    #     if self.resources >= self.upgrade_cost:
+                    #         actions.append(upgradeBase())
+                    #         self.resources -= self.upgrade_cost
+
+                    curr_lvl = self.board[0,VCENTER,1]
+                    next_lvl_idx = np.argwhere(lvl_steps > curr_lvl)[0,0] if np.any(lvl_steps > curr_lvl) else None
+
+
+                    buy_condition = extra_upgrd_cond[next_lvl_idx] if next_lvl_idx is not None else False
+
+                    if  buy_condition:
                         if self.resources >= self.upgrade_cost:
                             actions.append(upgradeBase())
                             self.resources -= self.upgrade_cost
+
 
                     else:
 
@@ -392,7 +412,6 @@ class Environment:
                 elif soldier_type == ALLIED_SOLDIER_RANGED:
                     
                     max_soldiers = 50
-                    formation_rows = list(range(1, HEIGHT-1))
 
                     if y not in formation_rows: # Leave top and bottom rows free
                         
