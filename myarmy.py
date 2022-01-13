@@ -52,15 +52,17 @@ class Environment:
         self.turn = 0
         self.initial_cols = [4,5]
         
-        self.formation_col = 14
+        
         self.max_melee = 20
         self.max_ranged = 50
 
         if self.difficulty == 0:
+            self.formation_col = 20
             self.level_steps = np.array([7, 14, 16])
             self.formation_rows = [4,6] 
         else:
-            self.level_steps = np.array([5, 10])
+            self.formation_col = 15
+            self.level_steps = np.array([5, 10, 12])
             self.formation_rows = list(range(1, HEIGHT-1))
 
         self.extra_upgrd_cond = np.zeros(self.level_steps.shape, dtype=bool)
@@ -129,7 +131,7 @@ class Environment:
         self.turn += 1  
         playActions(actions)
 
-        print(f'Play time: {(time.time() - tic)*1000}')
+        print(f'Play time: {(time.time() - tic)*1000:.3f} ms')
 
     def buyStrategy(self):
 
@@ -152,12 +154,13 @@ class Environment:
 
         else:
 
-            for i in range(2):
+            for i in range(3):
                 col = self.formation_col - i
                 cols_ok.append(np.all((self.board[col, self.formation_rows,0] == ALLIED_SOLDIER_RANGED) & (self.board[col, self.formation_rows,1] >= self.max_ranged)))
 
             self.extra_upgrd_cond[0] = True
             self.extra_upgrd_cond[1] = cols_ok[0] and cols_ok[1]
+            self.extra_upgrd_cond[2] = cols_ok[0] and cols_ok[1] and cols_ok[2]
             
         curr_lvl = self.board[0,VCENTER,1]
         next_lvl_idx = np.argwhere(self.level_steps > curr_lvl)[0,0] if np.any(self.level_steps > curr_lvl) else None
@@ -272,6 +275,7 @@ class Environment:
 
         # Move forward in the upper row (when invisible)
         if amount <= self.max_melee:
+            
             if y == 0 and self.board[x+1,y,0] not in [ALLIED_SOLDIER_RANGED]:
                 actions.append(moveSoldiers((x,y), (x+1,y), self.board[x,y,1]))
 
