@@ -7,6 +7,7 @@ from utils import _PRINT
 
 import json
 import numpy as np
+import time
 
 
 DEBUG_FILE = "client_debug.txt"
@@ -86,10 +87,13 @@ class Environment:
 
     def play(self): # agent move, call playActions only ONCE
 
+        tic = time.time()
+
         actions = []
         print("Current production per turn is:", self.production)
         print("Current building cost is:", self.upgrade_cost)
 
+        # TODO check if dif1 is not better for both
         if self.difficulty == 0:
             actions = self.dif0()
         elif self.difficulty == 1:
@@ -116,6 +120,8 @@ class Environment:
         self.turn += 1  
         playActions(actions)
 
+        print(f'Play time: {(time.time() - tic)*1000}')
+
 
     def dif0(self):
         actions = []
@@ -127,8 +133,17 @@ class Environment:
         formation_rows = [4,6] 
         formation_col = 14
         initial_col = 5
-        initial_desired_level = 7
-        max_desired_lvl = 14 
+        # initial_desired_level = 7
+        # max_desired_lvl = 14
+
+        lvl_steps = np.array([7, 14, 17])
+        extra_upgrd_cond = np.zeros(lvl_steps.shape, dtype=bool)
+
+        extra_upgrd_cond[0] = True
+        extra_upgrd_cond[1] = np.all(self.board[formation_col-1:formation_col+1, 0:formation_rows[0]+1,1] == 50) \
+            and np.all(self.board[formation_col-1:formation_col+1, formation_rows[1]:HEIGHT,1] == 50)
+        extra_upgrd_cond[2] = np.all(self.board[formation_col-2:formation_col+1, 0:formation_rows[0]+1,1] == 50) \
+            and np.all(self.board[formation_col-2:formation_col+1, formation_rows[1]:HEIGHT,1] == 50)
         
         for x in range(WIDTH):
             for y in range(HEIGHT):
@@ -140,17 +155,39 @@ class Environment:
 
                 if soldier_type == ALLIED_MAIN_BUILDING:
 
-                    formation1 = np.all(self.board[formation_col-1:formation_col+1,0:formation_rows[0]+1,1] == 50)
-                    formation2 = np.all(self.board[formation_col-1:formation_col+1,formation_rows[1]:HEIGHT,1] == 50)
+                    curr_lvl = self.board[0,VCENTER,1]
+                    next_lvl_idx = np.argwhere(lvl_steps > curr_lvl)[0,0] if np.any(lvl_steps > curr_lvl) else None
 
-                    buy_condition = formation1 and formation2 and self.board[0,VCENTER,1] < max_desired_lvl
 
-                    if self.board[0,VCENTER,1] < initial_desired_level \
-                        or buy_condition:
+                    buy_condition = extra_upgrd_cond[next_lvl_idx] if next_lvl_idx is not None else False
 
+                    if  buy_condition:
                         if self.resources >= self.upgrade_cost:
                             actions.append(upgradeBase())
-                            self.resources -= self.upgrade_cost                        
+                            self.resources -= self.upgrade_cost
+
+
+
+
+
+
+
+
+
+
+
+
+                    # formation1 = np.all(self.board[formation_col-1:formation_col+1, 0:formation_rows[0]+1,1] == 50)
+                    # formation2 = np.all(self.board[formation_col-1:formation_col+1, formation_rows[1]:HEIGHT,1] == 50)
+
+                    # buy_condition = formation1 and formation2 and self.board[0,VCENTER,1] < max_desired_lvl
+
+                    # if self.board[0,VCENTER,1] < initial_desired_level \
+                    #     or buy_condition:
+
+                    #     if self.resources >= self.upgrade_cost:
+                            # actions.append(upgradeBase())
+                            # self.resources -= self.upgrade_cost                        
 
                     else: 
 
@@ -309,24 +346,6 @@ class Environment:
                             self.resources -= self.upgrade_cost
 
                     else:
-                    
-                        # # Recruit melee
-                        # melee_pos = (0,VCENTER-1)
-                        # amount = self.resources // SOLDIER_MELEE_COST
-
-                        # if self.resources >= SOLDIER_MELEE_COST \
-                        #     and self.board[melee_pos[0], melee_pos[1], 0] == EMPTY_CELL \
-                        #     and amount >= 20:
-
-                        #     amount = 20
-                        #     actions.append(recruitSoldiers(ALLIED_SOLDIER_MELEE, amount, melee_pos))
-                        #     self.resources -= amount * SOLDIER_MELEE_COST
-                        
-                        # # Recruit ranged
-                        # amount = self.resources // SOLDIER_RANGED_COST
-                        # if amount > 2:
-                        #     actions.append(recruitSoldiers(ALLIED_SOLDIER_RANGED, amount))
-                        #     self.resources -= amount * SOLDIER_RANGED_COST
 
                         # set amounts
                         melee_amount = 20 
@@ -358,7 +377,7 @@ class Environment:
                     
                     max_soldiers = 20
 
-                    # Move forward in the upper row (when invisible), as less enemies
+                    # Move forward in the upper row (when invisible)
                     if soldier_amount <= max_soldiers:
                         if y == 0 and self.board[x+1,y,0] not in [ALLIED_SOLDIER_RANGED]:
                             actions.append(moveSoldiers((x,y), (x+1,y), self.board[x,y,1]))
@@ -444,42 +463,6 @@ class Environment:
 
 
 
-
-                            
-                            # if x < formation_col \
-                            #     and not np.array_equal(self.board[x+1,y],[ALLIED_SOLDIER_RANGED, max_soldiers]):
-
-                            #     if self.board[x+1,y,0] in [EMPTY_CELL, ALLIED_SOLDIER_RANGED]:
-                            #         actions.append(moveSoldiers((x,y),(x+1,y), self.board[x,y,1]))
-
-                            # else: # split them
-
-                            #     # if y == VCENTER:
-                            #     #     amount_up = soldier_amount//2
-                            #     #     amount_down = soldier_amount - amount_up
-
-                            #     #     if amount_up > 0 \
-                            #     #         and self.board[x,y-1,0] in [EMPTY_CELL, ALLIED_SOLDIER_RANGED] \
-                            #     #         and not np.array_equal(self.board[x,y-1],[ALLIED_SOLDIER_RANGED, max_soldiers]):
-
-                            #     #         actions.append(moveSoldiers((x,y),(x,y-1), amount_up))
-
-                            #     #     if amount_down > 0 \
-                            #     #         and self.board[x,y+1,0] in [EMPTY_CELL, ALLIED_SOLDIER_RANGED] \
-                            #     #         and not np.array_equal(self.board[x,y+1],[ALLIED_SOLDIER_RANGED, max_soldiers]):
-
-                            #     #         actions.append(moveSoldiers((x,y),(x,y+1), amount_down))
-
-                            #     if y not in [1, HEIGHT-2]:
-
-                            #         amount = soldier_amount // 2
-                            #         delta = max_soldiers - self.board[x, y+y_dir, 1]
-
-                            #         if delta < amount:
-                            #             amount = delta
-
-                            #         if amount > 0:
-                            #             actions.append(moveSoldiers((x,y), (x,y+y_dir), amount))
 
                             
                             
