@@ -34,6 +34,7 @@ __maintainer__ = 'Joao Santos'
 
 """
 TODO
+- emergency mode when formattion is broken beyond repair
 """
 
 """
@@ -62,7 +63,7 @@ class Environment:
             self.formation_rows = [4,6] 
         else:
             self.formation_col = 15
-            self.level_steps = np.array([5, 10, 12])
+            self.level_steps = np.array([5, 10, 14])
             self.formation_rows = list(range(1, HEIGHT-1))
 
         self.extra_upgrd_cond = np.zeros(self.level_steps.shape, dtype=bool)
@@ -145,7 +146,6 @@ class Environment:
 
             for i in range(3):
                 col = self.formation_col - i
-                print(np.all((self.board[col, rows,0] == ALLIED_SOLDIER_RANGED) & (self.board[col, rows,1] >= self.max_ranged)))
                 cols_ok.append(np.all((self.board[col, rows,0] == ALLIED_SOLDIER_RANGED) & (self.board[col, rows,1] >= self.max_ranged)))
 
             self.extra_upgrd_cond[0] = True
@@ -175,7 +175,12 @@ class Environment:
         else:
 
             # set amounts
-            melee_amount = 20 
+            # melee_amount = 20 if self.difficulty == 0 else 40
+            if self.difficulty == 0:
+                melee_amount = 20
+            else: 
+                melee_amount = 40 if curr_lvl < self.level_steps[1] else 0
+
             ranged_amount = int((self.resources - melee_amount * SOLDIER_MELEE_COST) // SOLDIER_RANGED_COST )
 
             # recruit ranged
@@ -201,15 +206,18 @@ class Environment:
                     self.resources -= ranged_amount * SOLDIER_RANGED_COST
 
             # recruit melee
-            melee_amount = melee_amount if (melee_amount <= self.resources // SOLDIER_MELEE_COST) else self.resources // SOLDIER_MELEE_COST
-            melee_pos = [1,VCENTER] if self.difficulty == 0 else [0,VCENTER-1]
+            if melee_amount > 0:
+                melee_amount = melee_amount if (melee_amount <= self.resources // SOLDIER_MELEE_COST) else self.resources // SOLDIER_MELEE_COST
+
+            melee_pos = [[1,VCENTER]] if self.difficulty == 0 else [[0,VCENTER-1],[0,VCENTER+1]]
 
             melee_cond = melee_amount > 0 \
-                and self.resources >= melee_amount * SOLDIER_MELEE_COST
+                and self.resources >= melee_amount * SOLDIER_MELEE_COST 
 
-            if melee_cond and self.board[melee_pos[0], melee_pos[1], 0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE]:
-                actions.append(recruitSoldiers(ALLIED_SOLDIER_MELEE, melee_amount, melee_pos))
-                self.resources -= melee_amount * SOLDIER_MELEE_COST
+            for pos in melee_pos:
+                if melee_cond and self.board[pos[0], pos[1], 0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE]:
+                    actions.append(recruitSoldiers(ALLIED_SOLDIER_MELEE, melee_amount//len(melee_pos), pos))
+                    self.resources -= melee_amount * SOLDIER_MELEE_COST
 
         return actions
 
@@ -276,16 +284,49 @@ class Environment:
         # Move forward in the upper row (when invisible)
         if amount <= self.max_melee:
             
-            if y == 0 and self.board[x+1,y,0] not in [ALLIED_SOLDIER_RANGED]:
+            if y in [0, HEIGHT-1] and self.board[x+1,y,0] not in [ALLIED_SOLDIER_RANGED]: # move forward
                 actions.append(moveSoldiers((x,y), (x+1,y), self.board[x,y,1]))
 
-            elif 0 < y < HEIGHT and self.board[x,y-1,0] not in [ALLIED_SOLDIER_RANGED]:
+            elif 0 < y <= VCENTER and self.board[x,y-1,0] not in [ALLIED_SOLDIER_RANGED]: # move upward
                 actions.append(moveSoldiers((x,y), (x,y-1), self.board[x,y,1]))
+
+            elif VCENTER < y < HEIGHT - 1 and self.board[x,y+1,0] not in [ALLIED_SOLDIER_RANGED]: # move downward
+                actions.append(moveSoldiers((x,y), (x,y+1), self.board[x,y,1]))
 
         else:
             pass # TODO
 
         return actions
+
+    # def meleeStrategy1(self, x, y, amount):
+
+    #     actions = []
+    #     y_dir = [1,-1][y<VCENTER]
+
+    #     # Move forward in the upper row (when invisible)
+    #     if amount <= self.max_melee:
+            
+    #         bait_cell = self.board[self.formation_col+6, self.formation_rows[0]]
+    #         if bait_cell[0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE] \
+    #             and bait_cell[1] <= self.max_melee and \
+    #             x == self.formation_col+6 and y == 0:
+                
+    #             amount_down = min(amount, self.max_melee+1-bait_cell[1])
+    #             if amount_down > 0:
+    #                 actions.append(moveSoldiers((x,y), (x,y+1), amount_down))
+    #                 amount -= amount_down
+
+    #         if amount > 0:
+    #             if y == 0 and self.board[x+1,y,0] not in [ALLIED_SOLDIER_RANGED]: # move forward
+    #                 actions.append(moveSoldiers((x,y), (x+1,y), amount))
+
+    #             elif 0 < y < HEIGHT and self.board[x,y-1,0] not in [ALLIED_SOLDIER_RANGED]: # move upward
+    #                 actions.append(moveSoldiers((x,y), (x,y-1), amount))
+
+    #     else:
+    #         pass # TODO
+
+    #     return actions
 
     def rangedStrategy0(self, x, y, amount):
 
