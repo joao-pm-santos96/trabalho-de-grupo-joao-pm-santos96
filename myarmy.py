@@ -104,6 +104,9 @@ class Environment:
         self.enemies = np.argwhere((soldiers == ENEMY_SOLDIER_MELEE) | (soldiers == ENEMY_SOLDIER_RANGED))
         self.enemies = [tuple(x) for x in self.enemies]
 
+        if self.difficulty == 1 and self.board[0,VCENTER,1] >= self.level_steps[-1]:
+            self.formation_rows = list(range(0, HEIGHT))
+
         for x in range(WIDTH):
             for y in range(HEIGHT):
 
