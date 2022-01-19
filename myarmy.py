@@ -67,6 +67,7 @@ class Environment:
             self.formation_rows = list(range(1, HEIGHT-1))
 
         self.extra_upgrd_cond = np.zeros(self.level_steps.shape, dtype=bool)
+        self.in_panic = False
 
         playActions([])
 
@@ -101,8 +102,11 @@ class Environment:
         print("Current building cost is:", self.upgrade_cost)
 
         soldiers = self.board[:,:,0]
-        self.enemies = np.argwhere((soldiers == ENEMY_SOLDIER_MELEE) | (soldiers == ENEMY_SOLDIER_RANGED))
-        self.enemies = [tuple(x) for x in self.enemies]
+        enemies = np.argwhere((soldiers == ENEMY_SOLDIER_MELEE) | (soldiers == ENEMY_SOLDIER_RANGED))
+        self.enemies = [tuple(x) for x in enemies]
+
+        if np.any(enemies[:,0] < self.formation_col):
+            self.in_panic = True
 
         if self.difficulty == 1 and self.board[0,VCENTER,1] >= self.level_steps[-1]:
             self.formation_rows = list(range(0, HEIGHT))
@@ -300,36 +304,6 @@ class Environment:
             pass # TODO
 
         return actions
-
-    # def meleeStrategy1(self, x, y, amount):
-
-    #     actions = []
-    #     y_dir = [1,-1][y<VCENTER]
-
-    #     # Move forward in the upper row (when invisible)
-    #     if amount <= self.max_melee:
-            
-    #         bait_cell = self.board[self.formation_col+6, self.formation_rows[0]]
-    #         if bait_cell[0] in [EMPTY_CELL, ALLIED_SOLDIER_MELEE] \
-    #             and bait_cell[1] <= self.max_melee and \
-    #             x == self.formation_col+6 and y == 0:
-                
-    #             amount_down = min(amount, self.max_melee+1-bait_cell[1])
-    #             if amount_down > 0:
-    #                 actions.append(moveSoldiers((x,y), (x,y+1), amount_down))
-    #                 amount -= amount_down
-
-    #         if amount > 0:
-    #             if y == 0 and self.board[x+1,y,0] not in [ALLIED_SOLDIER_RANGED]: # move forward
-    #                 actions.append(moveSoldiers((x,y), (x+1,y), amount))
-
-    #             elif 0 < y < HEIGHT and self.board[x,y-1,0] not in [ALLIED_SOLDIER_RANGED]: # move upward
-    #                 actions.append(moveSoldiers((x,y), (x,y-1), amount))
-
-    #     else:
-    #         pass # TODO
-
-    #     return actions
 
     def rangedStrategy0(self, x, y, amount):
 
