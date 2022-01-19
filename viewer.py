@@ -4,7 +4,7 @@ import time
 
 CELL_PIXELS = 48
 CELL_INCREASE = 65
-FPS = 5
+FPS = 50
 TIME_BETWEEN_DRAWS = 1/FPS
 
 try:
@@ -21,6 +21,13 @@ class Viewer:
         pygame.font.init()
         self.screen = pygame.display.set_mode([WIDTH*CELL_PIXELS + 10, HEIGHT*CELL_PIXELS + 5 + CELL_INCREASE])
         self.board_history = []
+
+        self.ranged_soldier = RangedSoldier()
+        self.stealth_melee = MeleeSoldier(stealth=True)
+        self.melee_soldier = MeleeSoldier()
+        self.enemy_melee = MeleeSoldier(side=1)
+        self.enemy_ranged = RangedSoldier(side=1)
+        self.building = Building()
 
 
     def drawmap(self, board, state_dict, saveToHistory=True, saveFrameToFile=None):
@@ -72,11 +79,11 @@ class Viewer:
             self.screen.blit(vertical_line, (startpixel, CELL_INCREASE))
 
 
-        ranged_soldier = RangedSoldier()
-        stealth_melee = MeleeSoldier(stealth=True)
-        melee_soldier = MeleeSoldier()
-        enemy_melee = MeleeSoldier(side=1)
-        enemy_ranged = RangedSoldier(side=1)
+        # ranged_soldier = RangedSoldier()
+        # stealth_melee = MeleeSoldier(stealth=True)
+        # melee_soldier = MeleeSoldier()
+        # enemy_melee = MeleeSoldier(side=1)
+        # enemy_ranged = RangedSoldier(side=1)
         for row in range(HEIGHT):
             for col in range(WIDTH):
                 cell = board[row][col]
@@ -91,18 +98,18 @@ class Viewer:
                     text_width, text_height = myfont.size(text)
                     if cell[0] == ALLIED_SOLDIER_MELEE:
                         if cell[1] <= 20:
-                            soldier = stealth_melee # spawn invisible soldier
+                            soldier = self.stealth_melee # spawn invisible soldier
                         else:
-                            soldier = melee_soldier # spawn melee soldier
+                            soldier = self.melee_soldier # spawn melee soldier
                     elif cell[0] == ALLIED_SOLDIER_RANGED:
-                        soldier = ranged_soldier  # spawn soldier
+                        soldier = self.ranged_soldier  # spawn soldier
                     elif cell[0] == ENEMY_SOLDIER_MELEE:
-                        soldier = enemy_melee
+                        soldier = self.enemy_melee
                     elif cell[0] == ENEMY_SOLDIER_RANGED:
-                        soldier = enemy_ranged
+                        soldier = self.enemy_ranged
                     elif cell[0] == ALLIED_MAIN_BUILDING:
                         building = True
-                        soldier = Building()
+                        soldier = self.building
                         
                     if soldier:
                         soldier.rect.x = 5 + col*CELL_PIXELS   # go to x
