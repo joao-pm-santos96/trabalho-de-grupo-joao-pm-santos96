@@ -51,15 +51,14 @@ class Environment:
 
         self.enemies = None
         self.turn = 0
-        self.initial_cols = [4,5]
-        
+        self.initial_cols = [4,5]        
         
         self.max_melee = 20
         self.max_ranged = 50
 
         if self.difficulty == 0:
             self.formation_col = 20
-            self.level_steps = np.array([7, 14, 16])
+            self.level_steps = np.array([7, 14, 18])
             self.formation_rows = [4,6] 
         else:
             self.formation_col = 15
@@ -151,13 +150,13 @@ class Environment:
             rows = np.arange(0, HEIGHT) # ignore top and bottom rows
             rows = rows[rows != VCENTER] # ignore center row
 
-            for i in range(3):
+            for i in range(4):
                 col = self.formation_col - i
                 cols_ok.append(np.all((self.board[col, rows,0] == ALLIED_SOLDIER_RANGED) & (self.board[col, rows,1] >= self.max_ranged)))
 
             self.extra_upgrd_cond[0] = True
             self.extra_upgrd_cond[1] = cols_ok[0] and cols_ok[1]
-            self.extra_upgrd_cond[2] = cols_ok[0] and cols_ok[1] and cols_ok[2]
+            self.extra_upgrd_cond[2] = cols_ok[0] and cols_ok[1] and cols_ok[2] and cols_ok[3]
 
         else:
 
