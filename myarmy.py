@@ -59,7 +59,7 @@ class Environment:
         if self.difficulty == 0:
             self.formation_col = 20
             # self.level_steps = np.array([7, 14, 22])
-            self.level_steps = np.array([6, 18, 23])
+            self.level_steps = np.array([7, 16, 23])
             self.formation_rows = [4,6] 
         else:
             self.formation_col = 15
@@ -162,7 +162,7 @@ class Environment:
             rows = np.arange(0, HEIGHT) # ignore top and bottom rows
             rows = rows[rows != VCENTER] # ignore center row
 
-            for i in range(2):
+            for i in range(5):
                 col = self.formation_col - i
                 cols_ok.append(np.all((self.board[col, rows,0] == ALLIED_SOLDIER_RANGED) & (self.board[col, rows,1] >= self.max_ranged)))
 
@@ -193,13 +193,16 @@ class Environment:
         else:
 
             # set amounts
-            # melee_amount = 20 if self.difficulty == 0 else 40
             if self.difficulty == 0:
                 melee_amount = 20
             else: 
                 melee_amount = 40 if (not self.in_panic) else 20
 
             ranged_amount = int((self.resources - melee_amount * SOLDIER_MELEE_COST) // SOLDIER_RANGED_COST )
+
+            # if self.difficulty == 0 and np.all(cols_ok):
+            #     ranged_amount = 0
+            #     melee_amount = self.resources // SOLDIER_MELEE_COST
 
             # recruit ranged
             ranged_min_amount = 2 if self.difficulty == 0 else 1
@@ -291,6 +294,7 @@ class Environment:
 
                 if dest != (0,0):
                     actions.append(moveSoldiers((x,y), dest, self.board[x,y,1]))
+    
 
         return actions
 

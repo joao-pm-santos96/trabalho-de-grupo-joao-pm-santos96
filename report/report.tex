@@ -75,19 +75,19 @@ These base values are what define how much it costs to upgrade the base througho
 
 In a macro point of view, the developed agent differentiates its behaviour (from now on called macro strategy) accordingly to the known difficulty of the game. Mainly, the agent loads a set of parameters and chooses the accordingly individual strategy (called micro strategy) for each cell with any allied soldier (melee, ranged or base). Yet, both macro strategies have big similarities.
 
+Both macro strategies consist on building a defence block composed of ranged soldiers, while the melee soldiers try to attack the enemy by reaching the last column of the board. While this happens, the base upgrades its level in steps, this is, given a set of conditions that will be detailed in the coming sections, it stops spawning any soldier so all the generated resources are invested in the upgrading process. This conduct switches back to the default buy strategy when a desired level is reached.
 
+A relevant part of the strategy consists in, initially, build the defense block by filling the cells with fifty ranged soldiers. When the final desired level of the base is reached, this amount switches to the maximum that is capable of the ranged attack (five hundred) which hugely increases the score reached. In the in-between a a middle amount (two hundred and fifty) is used.
 
 \section{Main Algorithms and Parameters}
 
-Both macro strategies consist on building a defence block composed of ranged soldiers, while the melee soldiers try to attack the enemy by reaching the last column of the board. While this happens, the base upgrades its level in steps, this is, given a set of conditions that will be detailed in the coming paragraphs, it stops spawning any soldier so all the generated resources are invested in the upgrading process. This conduct switches back to the default buy strategy when a desired level is reached.
-
-A relevant part of the strategy consists in, initially, build the defense block by filling the cells with fifty ranged soldiers. When the final desired level of the base is reached, this amount switches to the maximum that is capable of the ranged attack (five hundred) which hugely increases the score reached.
+As mentioned, each difficulty caused certain specificities in the strategy.
 
 \subsection{Difficulty 0}
 
 Before going any further, we need to define the concept of battle front. In the scope of this project, the battle front if the farthest column that a allied ranged soldier will occupy of the battle formation. It is in this column where these soldiers will wait and attack the coming enemy. 
 
-In the same way, the formation rows are the rows that these same ranged soldiers can occupy. Both concepts are visible on Fig. \ref{fig:dif0_formattions}. For difficult 0, the battle front was at column twenty while the formation rows where all except the middle one.
+In the same way, the formation rows are the rows that these same ranged soldiers can occupy. Both concepts are visible on Fig. \ref{fig:dif0_formattions}. For difficult 0, the battle front was at column twenty while the formation rows where all except the middle one. When the last upgrade level is reached, the formation moves forward to column twenty five to increase the pressure in the enemy.
 
 On the easier difficulty, the enemies spawn in random cells, i.e. they have no formation. This allows the melee soldiers to find "holes" in the attack of the enemy so that it can reach the last column of the board. To do so, the melee soldiers are always recruited on the center row (the row where the base is located) and move forward until the battle front is reached.
 
@@ -101,7 +101,7 @@ When the battle front is reached, three actions can happen:
 
 Notice that all this happens for both melee soldiers that are and are not hidden. The two cell check for moving forward is needed because if less, then in a turn where both the allied and enemy move forward, they would end up in the same cell and, as a result, in an unwanted clash.
 
-In parallel to this, the ranged soldiers are working in building the defence block. The defense block consists in moving towards the battle front and occupying all the formation rows with fifty soldiers. When the battle front is fully occupied, the immediately previous column is filled in the same way, and so on until the game ends or no more columns are free. When the enemy can reach and eliminate some or all the allied soldiers, then the formation is rebuilt by the soldiers on the back column moving forward.
+In parallel to this, the ranged soldiers are working in building the defence block. The defense block consists in moving towards the battle front and occupying all the formation rows with a given amount soldiers, as already explained. When the battle front is fully occupied, the immediately previous column is filled in the same way, and so on until the game ends or no more columns are free. When the enemy can reach and eliminate some or all the allied soldiers, then the formation is rebuilt by the soldiers on the back column moving forward.
 
 In this difficulty, the formation rows are all except the middle one. This is intend so that the melee soldier have where to pass towards their goal. 
 
@@ -111,7 +111,7 @@ Finally, the missing piece is the behaviour of the base. In the beginning, the b
 
 Notice that, in this difficulty, it is desired to have the center row free for the melee soldiers to pass and attack the enemy. This is the reason why the melee soldiers are recruited of the cell in front of the base while the ranged are split in half and recruited in both the top and bottom cells adjacent to the base. Fig. \ref{fig:dif0_formattions} shows the general idea of the formations.
 
-A second upgrading step for the base when the ranged soldier fully occupy the first two columns of the battle front, taking the base up to the level fourteen. The third and final step, the one that takes the base up to the final level of eighteen, happens when the first four rows are fully occupied.
+A second upgrading step for the base when the ranged soldier fully occupy the first two columns of the battle front (with 250 soldiers per cell), taking the base up to the level sixteen. The third and final step, the one that takes the base up to the final level of twenty three, happens when the same columns are again fully occupied, but with 500 soldiers per cell.
 
 As an emergency action, if during any of the upgrading steps, the battle front soldiers happen to be attacked en eliminated, the base immediately starts recruiting more soldiers (using the same policy) until that column formation is rebuilt. 
 
@@ -124,7 +124,7 @@ As an emergency action, if during any of the upgrading steps, the battle front s
 
 \subsection{Difficulty 1}
 
-On the harder difficulty, the macro strategy is very similar, while the micro strategies differ. The first difference is that the battle front is closer to the base to give time for the ranged soldiers to gather in their positions (see Fig. \ref{fig:dif1_formattions}). 
+On the harder difficulty, the macro strategy is very similar, while the micro strategies differ. The first difference is that the battle front is closer to the base to give time for the ranged soldiers to gather in their positions (see Fig. \ref{fig:dif1_formattions}). Further in the game, this also changes by going forward, as in previous difficulty.
 
 \begin{figure*}[htbp]
     \centering
@@ -133,14 +133,13 @@ On the harder difficulty, the macro strategy is very similar, while the micro st
     \label{fig:dif1_formattions}
 \end{figure*}
 
-Also, since now the enemies appear in a diagonal formation, there are no holes that the melee soldiers can take advantage of. As a counterpart, it takes a known (and longer) number of turns for an enemy soldier to spawn in the same row. This makes it more beneficial for the melee soldiers to attack through the top and bottom rows. The formation behaviour of the enemies makes it unfeasible to try to avoid them. So, to save resources, the melee soldiers are only recruited while they (in the hidden amount) can successfully reach the last column. When the enemy spawns are so large that they can not, they stop. This is controlled by only recruiting while the base does not reach the second step of the upgrading process.
+Also, since now the enemies appear in a diagonal formation, there are no holes that the melee soldiers can take advantage of. As a counterpart, it takes a known (and longer) number of turns for an enemy soldier to spawn in the same row. This makes it more beneficial for the melee soldiers to attack through the top and bottom rows. The formation behaviour of the enemies makes it unfeasible to try to avoid them. So, to save resources, the melee soldiers are only recruited while they (in the hidden amount) can successfully reach the last column. When the enemy spawns are so large that they can not, they stop. 
 
-One of the biggest threats happens when enemy soldiers from different cells come together and add up to amounts that the defence block can not stop. To try to keep them spread, when the recruitment of the melee soldiers ends, the ranged soldiers also start to occupy the rows that were previously free for their passage.
+Given the increased costs on this difficulty, the author decided to maintain three steps on the upgrade strategy. Still, they happen as follows: in the start, the base is only upgraded up to level five. Then, when the first two columns on the battle front are completed with squads composed of two hundred and fifty ranged soldiers, the second step starts and goes to level sixteen. The final step takes the base to level eighteen and occurs when the those columns of the battle front are filled in the maximum amount of 500 ranged soldiers per cell.
 
-Given the increased costs on this difficulty, the author decided to maintain three steps on the upgrade strategy. Still, they happen as follows: in the start, the base is only upgraded up to level five. Then, when the first two columns on the battle front are completed with squads composed of fifty ranged soldiers, the second step starts and goes to level ten. This is also when the agent stops recruiting melee soldiers. The final step takes the base to level fourteen and occurs when the first three columns of the battle front are filled. 
 After this point, at each turn the maximum possible amount of ranged soldiers are recruited and the agent keeps trying to hold the army positions until the enemies spawns are so large that they can punch holes on the army.
 
-The most important parameters of this implementation have already been mentioned: battle front (column), formation rows and when the base upgrade happens and to what level. Given the define strategy, namely for difficulty 1, level fourteen is the most feasible that could be set. When trying to upgrade to any further, it would not be reached because it gives time for the enemy to start creating holes on the defense. Contrarily, on difficulty 0, going further than level eighteen provided no measurable benefit since it would take too long and too many resources to give very little reward. 
+The most important parameters of this implementation have already been mentioned: battle front (column), formation rows and when the base upgrade happens and to what level. Given the define strategy, namely for difficulty 1, level eighteen is the most feasible that could be set. When trying to upgrade to any further, it would not be reached because it gives time for the enemy to start creating holes on the defense. Contrarily, on difficulty 0, going further than level twenty three provided no measurable benefit since it would take too long and too many resources to give very little reward. 
 
 \section{Implementation Alternatives}
 
@@ -171,7 +170,7 @@ It is worth mentioned that this limit was not an issue during the agent developm
 
 \section{Results}
 
-In a five game mean, the developed agent is capable of reaching a score of 1512 at difficulty 0 and 1310 at difficulty 1. Additionally, the agent is able to inflict damage on the enemy, measured by the retard. The final (mean) scores for difficulty 0 and 1 were, respectively, 2989.7 and 766.2.
+In a five game mean, the developed agent is capable of reaching a score of 1651 at difficulty 0 and 1457 at difficulty 1. Additionally, the agent is able to inflict damage on the enemy, measured by the retard. The final (mean) scores for difficulty 0 and 1 were, respectively, 2864.2 and 3929.2.
 
 A note should be given to the strategies of the allied melee soldiers. The author had idealized that these soldiers, in addition to their attack goal, could be used to allure the enemies in such way that would be beneficial for the defense. However, all the tested methods caused the same problem. While being allured, the enemies would gather in amount that would, in the medium term, severely harm the overall defense. This is the reason why the only goal of the melee soldiers is to stay hidden and reach the last column.
 
