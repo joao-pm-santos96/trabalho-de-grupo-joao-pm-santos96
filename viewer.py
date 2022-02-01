@@ -4,7 +4,7 @@ import time
 
 CELL_PIXELS = 48
 CELL_INCREASE = 65
-FPS = 50
+FPS = 500
 TIME_BETWEEN_DRAWS = 1/FPS
 
 try:

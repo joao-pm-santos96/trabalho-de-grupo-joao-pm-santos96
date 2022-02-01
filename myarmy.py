@@ -104,6 +104,9 @@ class Environment:
         enemies = np.argwhere((soldiers == ENEMY_SOLDIER_MELEE) | (soldiers == ENEMY_SOLDIER_RANGED))
         self.enemies = [tuple(x) for x in enemies]
 
+        if self.board[0, VCENTER, 1] >= self.level_steps[-1]:
+            self.max_ranged = 500
+
         if np.any(enemies[:,0] < self.formation_col):
             self.in_panic = True
 
