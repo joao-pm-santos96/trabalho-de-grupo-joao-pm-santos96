@@ -58,11 +58,13 @@ class Environment:
 
         if self.difficulty == 0:
             self.formation_col = 20
-            self.level_steps = np.array([7, 14, 18])
+            # self.level_steps = np.array([7, 14, 22])
+            self.level_steps = np.array([6, 18, 23])
             self.formation_rows = [4,6] 
         else:
             self.formation_col = 15
-            self.level_steps = np.array([5, 10, 14])
+            # self.level_steps = np.array([5, 10, 14])
+            self.level_steps = np.array([5, 15, 18])
             self.formation_rows = list(range(1, HEIGHT-1))
 
         self.extra_upgrd_cond = np.zeros(self.level_steps.shape, dtype=bool)
@@ -104,14 +106,21 @@ class Environment:
         enemies = np.argwhere((soldiers == ENEMY_SOLDIER_MELEE) | (soldiers == ENEMY_SOLDIER_RANGED))
         self.enemies = [tuple(x) for x in enemies]
 
-        if self.board[0, VCENTER, 1] >= self.level_steps[-1]:
+        if self.board[0, VCENTER, 1] >= self.level_steps[1]:
+            self.max_ranged = 250
+            # if self.difficulty == 0:
+            self.formation_col = WIDTH-5 # TODO 26?
+
+        if self.board[0, VCENTER, 1] >= self.level_steps[2]:
             self.max_ranged = 500
 
-        if np.any(enemies[:,0] < self.formation_col):
-            self.in_panic = True
+        # if np.any(enemies[:,0] < self.formation_col):
+        #     self.in_panic = True
 
-        if self.difficulty == 1 and self.board[0,VCENTER,1] >= self.level_steps[-1]:
-            self.formation_rows = list(range(0, HEIGHT))
+        self.in_panic = np.any(enemies[:,0] < self.formation_col)
+
+        # if self.difficulty == 1 and self.board[0,VCENTER,1] >= self.level_steps[-1]:
+        #     self.formation_rows = list(range(0, HEIGHT))
 
         for x in range(WIDTH):
             for y in range(HEIGHT):
@@ -153,13 +162,13 @@ class Environment:
             rows = np.arange(0, HEIGHT) # ignore top and bottom rows
             rows = rows[rows != VCENTER] # ignore center row
 
-            for i in range(4):
+            for i in range(2):
                 col = self.formation_col - i
                 cols_ok.append(np.all((self.board[col, rows,0] == ALLIED_SOLDIER_RANGED) & (self.board[col, rows,1] >= self.max_ranged)))
 
             self.extra_upgrd_cond[0] = True
             self.extra_upgrd_cond[1] = cols_ok[0] and cols_ok[1]
-            self.extra_upgrd_cond[2] = cols_ok[0] and cols_ok[1] and cols_ok[2] and cols_ok[3]
+            self.extra_upgrd_cond[2] = cols_ok[0] and cols_ok[1] # and cols_ok[2] and cols_ok[3]
 
         else:
 
@@ -169,7 +178,7 @@ class Environment:
 
             self.extra_upgrd_cond[0] = True
             self.extra_upgrd_cond[1] = cols_ok[0] and cols_ok[1]
-            self.extra_upgrd_cond[2] = cols_ok[0] and cols_ok[1] and cols_ok[2]
+            self.extra_upgrd_cond[2] = cols_ok[0] and cols_ok[1]# and cols_ok[2]
             
         curr_lvl = self.board[0,VCENTER,1]
         next_lvl_idx = np.argwhere(self.level_steps > curr_lvl)[0,0] if np.any(self.level_steps > curr_lvl) else None
@@ -188,7 +197,7 @@ class Environment:
             if self.difficulty == 0:
                 melee_amount = 20
             else: 
-                melee_amount = 40 if curr_lvl < self.level_steps[1] else 0
+                melee_amount = 40 if (not self.in_panic) else 20
 
             ranged_amount = int((self.resources - melee_amount * SOLDIER_MELEE_COST) // SOLDIER_RANGED_COST )
 
