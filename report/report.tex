@@ -81,6 +81,8 @@ In a macro point of view, the developed agent differentiates its behaviour (from
 
 Both macro strategies consist on building a defence block composed of ranged soldiers, while the melee soldiers try to attack the enemy by reaching the last column of the board. While this happens, the base upgrades its level in steps, this is, given a set of conditions that will be detailed in the coming paragraphs, it stops spawning any soldier so all the generated resources are invested in the upgrading process. This conduct switches back to the default buy strategy when a desired level is reached.
 
+A relevant part of the strategy consists in, initially, build the defense block by filling the cells with fifty ranged soldiers. When the final desired level of the base is reached, this amount switches to the maximum that is capable of the ranged attack (five hundred) which hugely increases the score reached.
+
 \subsection{Difficulty 0}
 
 Before going any further, we need to define the concept of battle front. In the scope of this project, the battle front if the farthest column that a allied ranged soldier will occupy of the battle formation. It is in this column where these soldiers will wait and attack the coming enemy. 
@@ -99,7 +101,7 @@ When the battle front is reached, three actions can happen:
 
 Notice that all this happens for both melee soldiers that are and are not hidden. The two cell check for moving forward is needed because if less, then in a turn where both the allied and enemy move forward, they would end up in the same cell and, as a result, in an unwanted clash.
 
-In parallel to this, the ranged soldiers are working in building the defence block. The defense block consists in moving towards the battle front and occupying all the formation rows with the maximum amount of soldiers able to attack (fifty ranged soldiers). When the battle front is fully occupied, the immediately previous column is filled in the same way, and so on until the game ends or no more columns are free. When the enemy can reach and eliminate some or all the allied soldiers, then the formation is rebuilt by the soldiers on the back column moving forward.
+In parallel to this, the ranged soldiers are working in building the defence block. The defense block consists in moving towards the battle front and occupying all the formation rows with fifty soldiers. When the battle front is fully occupied, the immediately previous column is filled in the same way, and so on until the game ends or no more columns are free. When the enemy can reach and eliminate some or all the allied soldiers, then the formation is rebuilt by the soldiers on the back column moving forward.
 
 In this difficulty, the formation rows are all except the middle one. This is intend so that the melee soldier have where to pass towards their goal. 
 
@@ -169,7 +171,7 @@ It is worth mentioned that this limit was not an issue during the agent developm
 
 \section{Results}
 
-In a five game mean, the developed agent is capable of reaching a score of 655 at difficulty 0 and 585.8 at difficulty 1. Additionally, the agent is able to inflict damage on the enemy, measured by the retard. The final (mean) scores for difficulty 0 and 1 were, respectively, 1037.12 and 761.96.
+In a five game mean, the developed agent is capable of reaching a score of 1512 at difficulty 0 and 1310 at difficulty 1. Additionally, the agent is able to inflict damage on the enemy, measured by the retard. The final (mean) scores for difficulty 0 and 1 were, respectively, 2989.7 and 766.2.
 
 A note should be given to the strategies of the allied melee soldiers. The author had idealized that these soldiers, in addition to their attack goal, could be used to allure the enemies in such way that would be beneficial for the defense. However, all the tested methods caused the same problem. While being allured, the enemies would gather in amount that would, in the medium term, severely harm the overall defense. This is the reason why the only goal of the melee soldiers is to stay hidden and reach the last column.
 
